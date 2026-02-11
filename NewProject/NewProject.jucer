@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<JUCERPROJECT id="c4L61W" name="SilentStudio" projectType="guiapp" useAppConfig="0"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" headerPath="Source&#10;">
+  <MAINGROUP id="HBeSHf" name="SilentStudio">
+    <GROUP id="{A4F9F146-7E49-B7DD-C2CA-B4A7F2A7B01F}" name="Source">
+      <GROUP id="{B15141E0-9798-C71F-E97D-021DCE060EA5}" name="ui">
+        <FILE id="zofC2Z" name="PianoRoll.cpp" compile="1" resource="0" file="Source/ui/PianoRoll.cpp"/>
+        <FILE id="YRK5xG" name="PianoRoll.h" compile="0" resource="0" file="Source/ui/PianoRoll.h"/>
+        <FILE id="h8wRYM" name="TransportComponent.cpp" compile="1" resource="0"
+              file="Source/ui/TransportComponent.cpp"/>
+        <FILE id="M5CX1g" name="TransportComponent.h" compile="0" resource="0"
+              file="Source/ui/TransportComponent.h"/>
+      </GROUP>
+      <GROUP id="{1814AED0-6FB4-8DD8-4969-3DE6F306EA5D}" name="Instruments">
+        <FILE id="EP8rkQ" name="SamplerInstrument.cpp" compile="1" resource="0"
+              file="Source/instruments/SamplerInstrument.cpp"/>
+        <FILE id="SObrhW" name="SamplerInstrument.h" compile="0" resource="0"
+              file="Source/instruments/SamplerInstrument.h"/>
+        <FILE id="lg0Ss3" name="SynthSound.cpp" compile="1" resource="0" file="Source/instruments/SynthSound.cpp"/>
+        <FILE id="nWicjK" name="SynthSound.h" compile="0" resource="0" file="Source/instruments/SynthSound.h"/>
+        <FILE id="G3PZof" name="SynthVoice.cpp" compile="1" resource="0" file="Source/instruments/SynthVoice.cpp"/>
+        <FILE id="W85mkS" name="SynthVoice.h" compile="0" resource="0" file="Source/instruments/SynthVoice.h"/>
+      </GROUP>
+      <GROUP id="{925AB151-4EA1-709E-8667-AD80C2BCA9E3}" name="audio">
+        <FILE id="o9rrit" name="AudioEngine.cpp" compile="1" resource="0" file="Source/audio/AudioEngine.cpp"/>
+        <FILE id="MgiJPx" name="AudioEngine.h" compile="0" resource="0" file="Source/audio/AudioEngine.h"/>
+        <FILE id="vhnKTL" name="Track.cpp" compile="1" resource="0" file="Source/audio/Track.cpp"/>
+        <FILE id="qLI9dg" name="Track.h" compile="0" resource="0" file="Source/audio/Track.h"/>
+      </GROUP>
+      <FILE id="KNSZde" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
+      <FILE id="n8PVZK" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
+      <FILE id="f5e9xH" name="MainComponent.cpp" compile="1" resource="0"
+            file="Source/MainComponent.cpp"/>
+      <GROUP id="{4DAD4335-C8B4-EF81-6237-0EE4BF567BE6}" name="core">
+        <FILE id="Tynp0L" name="Note.h" compile="0" resource="0" file="Source/Note.h"
+              xcodeResource="0"/>
+      </GROUP>
+    </GROUP>
+  </MAINGROUP>
+  <MODULES>
+    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_processors" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_processors_headless" showAllCode="1" useLocalCopy="0"
+            useGlobalPath="1"/>
+    <MODULE id="juce_audio_utils" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_dsp" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+  </MODULES>
+  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1"/>
+  <EXPORTFORMATS>
+    <XCODE_MAC targetFolder="Builds/MacOSX">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="NewProject"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="NewProject"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="../../../Desktop/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../../Desktop/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../../Desktop/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../../Desktop/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../../Desktop/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../../Desktop/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../../Desktop/JUCE/modules"/>
+        <MODULEPATH id="juce_dsp" path="../../../Desktop/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../../Desktop/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../../Desktop/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../../Desktop/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../../Desktop/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors_headless" path="../../../Desktop/JUCE/modules"/>
+      </MODULEPATHS>
+    </XCODE_MAC>
+  </EXPORTFORMATS>
+</JUCERPROJECT>
