@@ -19,8 +19,28 @@ MainComponent::MainComponent()
         // Specify the number of input and output channels that we want to open
         setAudioChannels (0, 2);
     }
+    
+    addAndMakeVisible(transport);
+
+    transport.onPlay = [this]
+    {
+        audioEngine.play();
+    };
+
+    transport.onStop = [this]
+    {
+        audioEngine.stop();
+    };
+    
     addAndMakeVisible (pianoRoll);
     startTimerHz (20); // == 20 times/sec
+    
+    transport.onBpmChanged = [this](double newBpm)
+    {
+        audioEngine.setBpm(newBpm);
+    };
+    
+    transport.setBpmValue(audioEngine.getBpm()); // initializes the BPM
 }
 
 MainComponent::~MainComponent()
@@ -91,12 +111,15 @@ void MainComponent::resized()
     // This is called when the MainContentComponent is resized.
     // If you add any child components, this is where you should
     // update their positions.
-    pianoRoll.setBounds (getLocalBounds());
+    auto area = getLocalBounds();
+    transport.setBounds(area.removeFromTop(60));
+    pianoRoll.setBounds(area);
 }
 
 void MainComponent::timerCallback()
 {
+    //audioEngine.setBpm (120.0);        // later: link to UI
+    //audioEngine.setPlaying (true);     // later: transport
+    pianoRoll.setPlayhead(audioEngine.getPlayheadBeat());
     audioEngine.setNotes (pianoRoll.getNotes());
-    audioEngine.setBpm (120.0);        // later: link to UI
-    audioEngine.setPlaying (true);     // later: transport
 }

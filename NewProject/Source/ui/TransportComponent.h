@@ -21,9 +21,17 @@ public:
     TransportComponent();
     ~TransportComponent() override;
 
-    void paint (juce::Graphics&) override;
+    std::function<void()> onPlay;
+    std::function<void()> onStop;
+    std::function<void(double)> onBpmChanged;
+    
+    void paint (juce::Graphics& g) override;
     void resized() override;
+    void setBpmValue (double bpm);
 
-private:
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TransportComponent)
+    private:
+        juce::TextButton playButton { "Play" };
+        juce::TextButton stopButton { "Stop" };
+        juce::Slider bpmSlider;
+        juce::Label bpmLabel;
 };

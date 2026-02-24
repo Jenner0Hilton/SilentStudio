@@ -32,6 +32,11 @@ public:
 
     double pixelsPerBeat = 80.0;
     double rowHeight = 16.0;
+    double playheadBeat = 0.0;
+    void setPlayhead(double beat) { playheadBeat = beat; repaint(); }
+    
+    int getNoteIndexAt (juce::Point<float> pos) const;
+    juce::Rectangle<float> getNoteRect (const Note& n) const;
 
 private:
     double bpm = 120.0;

@@ -103,3 +103,23 @@ void AudioEngine::setNotes (std::vector<Note> newNotes)
     const std::scoped_lock lock (noteMutex);
     notes = std::move (newNotes);
 }
+
+void AudioEngine::play()
+{
+    playing.store(true);
+}
+
+void AudioEngine::stop()
+{
+    playing.store(false);
+    playheadBeat = 0.0;
+    
+    panic();
+}
+
+void AudioEngine::panic()
+{
+    // Immediately stop any sound, no tail
+    synth.allNotesOff (0, false);   // channel=0 means all channels in JUCE Synthesiser
+    //synth.handleController (1, 64, 0); // sustain off if I add sustain pedals later on
+}

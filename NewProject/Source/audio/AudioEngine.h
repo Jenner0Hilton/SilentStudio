@@ -30,7 +30,14 @@ public:
     
     void setNotes (std::vector<Note> newNotes);  // called by UI thread
     void setPlaying (bool shouldPlay) { playing.store(shouldPlay); }
-    void setBpm (double newBpm) { bpm.store(newBpm); }
+    //void setBpm (double newBpm) { bpm.store(newBpm); }
+    
+    void play();
+    void stop();
+    void panic();
+    void setBpm(double newBpm) { bpm.store(newBpm); }
+    double getPlayheadBeat() const { return playheadBeat; }
+    double getBpm() const { return bpm.load(); }
 
 private:
     double currentSampleRate { 44100.0 };
@@ -39,7 +46,7 @@ private:
     std::mutex noteMutex;
     std::vector<Note> notes;
 
-    std::atomic<bool> playing { true };
+    std::atomic<bool> playing { false };
     std::atomic<double> bpm { 120.0 };
 
     double playheadBeat = 0.0;

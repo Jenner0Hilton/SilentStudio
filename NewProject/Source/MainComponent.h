@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "audio/AudioEngine.h"
 #include "ui/PianoRoll.h"
+#include "ui/TransportComponent.h"
 
 //==============================================================================
 /*
@@ -31,6 +32,7 @@ private:
     // Your private member variables go here...
     AudioEngine audioEngine;
     PianoRoll pianoRoll;
+    TransportComponent transport;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

@@ -16,6 +16,36 @@ TransportComponent::TransportComponent()
 {
     // In your constructor, you should add any child components, and
     // initialise any special settings that your component needs.
+    addAndMakeVisible(playButton);
+    addAndMakeVisible(stopButton);
+
+    playButton.onClick = [this]
+    {
+        if (onPlay) onPlay();
+    };
+
+    stopButton.onClick = [this]
+    {
+        if (onStop) onStop();
+    };
+    
+    //BPM slider
+        addAndMakeVisible(bpmSlider);
+        bpmSlider.setRange(40.0, 240.0, 0.1);
+        bpmSlider.setValue(120.0);
+        bpmSlider.setSliderStyle(juce::Slider::LinearHorizontal);
+        bpmSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 70, 24);
+
+        bpmSlider.onValueChange = [this]
+        {
+            if (onBpmChanged)
+                onBpmChanged(bpmSlider.getValue());
+        };
+
+        // Label
+        addAndMakeVisible(bpmLabel);
+        bpmLabel.setText("BPM", juce::dontSendNotification);
+        bpmLabel.setJustificationType(juce::Justification::centredLeft);
 
 }
 
@@ -23,29 +53,26 @@ TransportComponent::~TransportComponent()
 {
 }
 
+void TransportComponent::setBpmValue (double bpm)
+{
+    bpmSlider.setValue(bpm, juce::dontSendNotification);
+}
+
 void TransportComponent::paint (juce::Graphics& g)
 {
-    /* This demo code just fills the component's background and
-       draws some placeholder text to get you started.
-
-       You should replace everything in this method with your own
-       drawing code..
-    */
-
-    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));   // clear the background
-
-    g.setColour (juce::Colours::grey);
-    g.drawRect (getLocalBounds(), 1);   // draw an outline around the component
-
-    g.setColour (juce::Colours::white);
-    g.setFont (juce::FontOptions (14.0f));
-    g.drawText ("TransportComponent", getLocalBounds(),
-                juce::Justification::centred, true);   // draw some placeholder text
+    g.fillAll(juce::Colours::darkslategrey);
 }
 
 void TransportComponent::resized()
 {
     // This method is where you should set the bounds of any child
     // components that your component contains..
+    auto area = getLocalBounds().reduced(10);
+    playButton.setBounds(area.removeFromLeft(100));
+    stopButton.setBounds(area.removeFromLeft(100));
+    
+    area.removeFromLeft(20);
 
+    bpmLabel.setBounds(area.removeFromLeft(40));
+    bpmSlider.setBounds(area.removeFromLeft(260));
 }
