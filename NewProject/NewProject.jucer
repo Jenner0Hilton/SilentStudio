@@ -25,6 +25,9 @@
       <GROUP id="{925AB151-4EA1-709E-8667-AD80C2BCA9E3}" name="audio">
         <FILE id="o9rrit" name="AudioEngine.cpp" compile="1" resource="0" file="Source/audio/AudioEngine.cpp"/>
         <FILE id="MgiJPx" name="AudioEngine.h" compile="0" resource="0" file="Source/audio/AudioEngine.h"/>
+        <FILE id="ZaWirg" name="AudioRecorder.cpp" compile="1" resource="0"
+              file="Source/audio/AudioRecorder.cpp"/>
+        <FILE id="FokiTP" name="AudioRecorder.h" compile="0" resource="0" file="Source/audio/AudioRecorder.h"/>
         <FILE id="vhnKTL" name="Track.cpp" compile="1" resource="0" file="Source/audio/Track.cpp"/>
         <FILE id="qLI9dg" name="Track.h" compile="0" resource="0" file="Source/audio/Track.h"/>
       </GROUP>
@@ -58,8 +61,8 @@
   <EXPORTFORMATS>
     <XCODE_MAC targetFolder="Builds/MacOSX">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="NewProject"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="NewProject"/>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="NewProject" plistPreprocessorDefinitions="&lt;key&gt;NSMicrophoneUsageDescription&lt;/key&gt;&#10;&lt;string&gt;This app needs microphone access to record audio.&lt;/string&gt;"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="NewProject" plistPreprocessorDefinitions="&lt;key&gt;NSMicrophoneUsageDescription&lt;/key&gt;&#10;&lt;string&gt;Recording audio for DAW&lt;/string&gt;&#10;"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="../../../Desktop/JUCE/modules"/>

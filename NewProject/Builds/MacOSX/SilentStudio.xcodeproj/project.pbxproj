@@ -13,6 +13,7 @@
 		22AD7771B3B365F6F2BADDCE /* include_juce_gui_basics.mm */ = {isa = PBXBuildFile; fileRef = 68DAE4F2D2DF22147DD90CC9; };
 		24F01A29E42313CC4BC154A8 /* CoreAudioKit.framework */ = {isa = PBXBuildFile; fileRef = A1920972F82A629A36878E9E; };
 		30C8881CE4EC590F95DF34C2 /* include_juce_audio_processors_headless_lv2_libs.cpp */ = {isa = PBXBuildFile; fileRef = 0E3A75B7774E48F089BDA4C3; };
+		3868262CC572C6C0DCFD00E5 /* AudioRecorder.cpp */ = {isa = PBXBuildFile; fileRef = A67D426B86285F88523AF1E5; };
 		3B74F5B3CAC15646509DFCE2 /* Main.cpp */ = {isa = PBXBuildFile; fileRef = DF209C3CD0E5997552D778C0; };
 		405B12F1A66B52C46E3D45DC /* include_juce_gui_extra.mm */ = {isa = PBXBuildFile; fileRef = 299E9289B22E13A6046DCADE; };
 		4A08C7EF406E0E3343EBC93C /* include_juce_events.mm */ = {isa = PBXBuildFile; fileRef = FEE7841B750E69A7A7AA00AA; };
@@ -101,9 +102,11 @@
 		A45C3E5DC3955AEB515B462E /* CoreMIDI.framework */ /* CoreMIDI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMIDI.framework; path = System/Library/Frameworks/CoreMIDI.framework; sourceTree = SDKROOT; };
 		A496A6B9286D2B81D898F6B9 /* CoreAudio.framework */ /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		A4D4B18C8B4B5DA3B05B12C2 /* SynthVoice.h */ /* SynthVoice.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SynthVoice.h; path = ../../Source/instruments/SynthVoice.h; sourceTree = SOURCE_ROOT; };
+		A67D426B86285F88523AF1E5 /* AudioRecorder.cpp */ /* AudioRecorder.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioRecorder.cpp; path = ../../Source/audio/AudioRecorder.cpp; sourceTree = SOURCE_ROOT; };
 		AA3BBE9102E3DF5174B1D96F /* SamplerInstrument.h */ /* SamplerInstrument.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SamplerInstrument.h; path = ../../Source/instruments/SamplerInstrument.h; sourceTree = SOURCE_ROOT; };
 		B03C76E80B6AD4ACABA7AEDB /* juce_audio_processors */ /* juce_audio_processors */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_audio_processors; path = /Users/jacquaehilton/Desktop/JUCE/modules/juce_audio_processors; sourceTree = "<absolute>"; };
 		BA24B1264E4878CF68E36DDE /* include_juce_core_CompilationTime.cpp */ /* include_juce_core_CompilationTime.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_core_CompilationTime.cpp; path = ../../JuceLibraryCode/include_juce_core_CompilationTime.cpp; sourceTree = SOURCE_ROOT; };
+		C1A381DFB97CAA99643DD8DC /* AudioRecorder.h */ /* AudioRecorder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AudioRecorder.h; path = ../../Source/audio/AudioRecorder.h; sourceTree = SOURCE_ROOT; };
 		C2C429A7A1DE69F04F4D47FF /* DiscRecording.framework */ /* DiscRecording.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DiscRecording.framework; path = System/Library/Frameworks/DiscRecording.framework; sourceTree = SDKROOT; };
 		C32F42217B7118D2B950625A /* juce_dsp */ /* juce_dsp */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_dsp; path = /Users/jacquaehilton/Desktop/JUCE/modules/juce_dsp; sourceTree = "<absolute>"; };
 		C3D8C7E08F6E840D3D70C5FA /* include_juce_audio_utils.mm */ /* include_juce_audio_utils.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_utils.mm; path = ../../JuceLibraryCode/include_juce_audio_utils.mm; sourceTree = SOURCE_ROOT; };
@@ -287,6 +290,8 @@
 			children = (
 				67F6A7126277E0DCB64A07EF,
 				92C3F25AA3BD248114FF364C,
+				A67D426B86285F88523AF1E5,
+				C1A381DFB97CAA99643DD8DC,
 				356F2DA938035C7F446C43F3,
 				17F5CD2AFB9B693484BEBE89,
 			);
@@ -401,6 +406,7 @@
 				113586695E426039B0A15DA8,
 				094857C85CD50424B06F1AC7,
 				8991714F9CA869CC70970478,
+				3868262CC572C6C0DCFD00E5,
 				F401017DB10FE20CA074E786,
 				3B74F5B3CAC15646509DFCE2,
 				9A4E8532740CA137EC633FEE,
@@ -578,6 +584,17 @@
 				);
 				INFOPLIST_FILE = Info-App.plist;
 				INFOPLIST_PREPROCESS = NO;
+				INFOPLIST_PREPROCESSOR_DEFINITIONS = (
+					"<key>NSMicrophoneUsageDescription</key>",
+					"<string>This",
+					"app",
+					"needs",
+					"microphone",
+					"access",
+					"to",
+					"record",
+					"audio.</string>",
+				);
 				INSTALL_PATH = "$(HOME)/Applications";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../JuceLibraryCode /Users/jacquaehilton/Desktop/JUCE/modules $(SRCROOT)/Source";
@@ -641,6 +658,13 @@
 				);
 				INFOPLIST_FILE = Info-App.plist;
 				INFOPLIST_PREPROCESS = NO;
+				INFOPLIST_PREPROCESSOR_DEFINITIONS = (
+					"<key>NSMicrophoneUsageDescription</key>",
+					"<string>Recording",
+					"audio",
+					"for",
+					"DAW</string>",
+				);
 				INSTALL_PATH = "$(HOME)/Applications";
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;

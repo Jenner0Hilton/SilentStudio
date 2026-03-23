@@ -38,9 +38,18 @@ public:
     void setBpm(double newBpm) { bpm.store(newBpm); }
     double getPlayheadBeat() const { return playheadBeat; }
     double getBpm() const { return bpm.load(); }
+    
+    bool exportWav (const juce::File& outFile,
+                       double lengthBeats,
+                       int numChannels = 2,
+                       int sampleRate = 44100);
+    
+    void setNumBars (int newNumBars) { numBars.store (juce::jmax (1, newNumBars)); }
+       int getNumBars() const { return numBars.load(); }
 
 private:
     double currentSampleRate { 44100.0 };
+    std::atomic<int> numBars { 4 };
     juce::Synthesiser synth;
            
     std::mutex noteMutex;

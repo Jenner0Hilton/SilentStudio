@@ -34,12 +34,19 @@ public:
     double rowHeight = 16.0;
     double playheadBeat = 0.0;
     void setPlayhead(double beat) { playheadBeat = beat; repaint(); }
-    
+    void setNumBars (int newNumBars);
+    int getNumBars() const { return numBars; }
     int getNoteIndexAt (juce::Point<float> pos) const;
     juce::Rectangle<float> getNoteRect (const Note& n) const;
+    
+    //functions for drag select
+    bool keyPressed (const juce::KeyPress& key) override;
+    void mouseDrag (const juce::MouseEvent& e) override;
+    void mouseUp (const juce::MouseEvent& e) override;
 
 private:
     double bpm = 120.0;
+    int numBars = 4;
     std::vector<Note> notes;
 
     int yToMidi (float y) const;
@@ -48,4 +55,20 @@ private:
     float beatToX (double beat) const;
 
     double snapBeat (double beat) const;
+    
+    //select drag
+    std::vector<int> selectedIndices;
+    std::vector<Note> clipboardNotes;
+
+    bool isSelecting = false;
+    juce::Point<float> selectionStart;
+    juce::Rectangle<float> selectionRect;
+    
+    void updateSelectionFromRect();
+    void copySelectedNotes();
+    void pasteClipboardAt (double targetBeat, int targetMidi);
+    bool isNoteSelected (int index) const;
+    
+    juce::Point<float> lastMousePosition;
+    //
 };

@@ -29,7 +29,8 @@ TransportComponent::TransportComponent()
         if (onStop) onStop();
     };
     
-    //BPM slider
+    
+    //BPM slider //
         addAndMakeVisible(bpmSlider);
         bpmSlider.setRange(40.0, 240.0, 0.1);
         bpmSlider.setValue(120.0);
@@ -46,6 +47,50 @@ TransportComponent::TransportComponent()
         addAndMakeVisible(bpmLabel);
         bpmLabel.setText("BPM", juce::dontSendNotification);
         bpmLabel.setJustificationType(juce::Justification::centredLeft);
+    
+    
+    // Export WAV file Button
+    addAndMakeVisible(exportButton);
+    exportButton.onClick = [this] { if (onExport) onExport(); };
+    
+    
+    //barsSlider
+    addAndMakeVisible (barsSlider);
+    addAndMakeVisible (barsLabel);
+
+    barsLabel.setText ("Bars", juce::dontSendNotification);
+    barsLabel.setJustificationType (juce::Justification::centredLeft);
+
+    barsSlider.setRange (1, 1000, 1); // if i want to allow for just an absurd amount of bars just change 32 to like 1000 or something give user 33 minutes of usable music score.
+    barsSlider.setValue (4);
+    barsSlider.setSliderStyle (juce::Slider::LinearHorizontal);
+    barsSlider.setTextBoxStyle (juce::Slider::TextBoxLeft, false, 50, 24);
+
+    barsSlider.onValueChange = [this]
+    {
+        if (onBarsChanged)
+            onBarsChanged ((int) barsSlider.getValue());
+    };
+    
+    
+    // Record Button
+    addAndMakeVisible (recordButton);
+    recordButton.setClickingTogglesState (true);
+
+    recordButton.onClick = [this]
+    {
+        if (onRecordToggled)
+            onRecordToggled (recordButton.getToggleState());
+    };
+    
+    //audioSettingsButton
+    addAndMakeVisible (audioSettingsButton);
+
+    audioSettingsButton.onClick = [this]
+    {
+        if (onAudioSettings)
+            onAudioSettings();
+    };
 
 }
 
@@ -70,9 +115,19 @@ void TransportComponent::resized()
     auto area = getLocalBounds().reduced(10);
     playButton.setBounds(area.removeFromLeft(100));
     stopButton.setBounds(area.removeFromLeft(100));
+    recordButton.setBounds (area.removeFromLeft (100));
+    area.removeFromLeft (20);
     
     area.removeFromLeft(20);
 
     bpmLabel.setBounds(area.removeFromLeft(40));
     bpmSlider.setBounds(area.removeFromLeft(260));
+    
+    exportButton.setBounds(area.removeFromLeft(120));
+    
+    barsLabel.setBounds(area.removeFromLeft(40));
+    barsSlider.setBounds(area.removeFromLeft(100));
+    
+    audioSettingsButton.setBounds (area.removeFromLeft (140));
+    area.removeFromLeft (10);
 }

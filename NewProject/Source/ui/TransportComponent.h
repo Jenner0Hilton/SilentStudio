@@ -24,6 +24,13 @@ public:
     std::function<void()> onPlay;
     std::function<void()> onStop;
     std::function<void(double)> onBpmChanged;
+    std::function<void()> onExport;
+    std::function<void(int)> onBarsChanged;
+    std::function<void(bool)> onRecordToggled;
+    std::function<void()> onAudioSettings;
+    
+    
+    
     
     void paint (juce::Graphics& g) override;
     void resized() override;
@@ -34,4 +41,12 @@ public:
         juce::TextButton stopButton { "Stop" };
         juce::Slider bpmSlider;
         juce::Label bpmLabel;
+        juce::Slider barsSlider;// potentially put this in public if causes issue
+        juce::Label barsLabel; // same with this one
+        juce::TextButton recordButton { "Record" };
+        
+    
+        juce::TextButton exportButton { "Export WAV" };
+        juce::TextButton audioSettingsButton { "Audio Settings" };
+        
 };

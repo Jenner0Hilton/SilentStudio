@@ -4,6 +4,7 @@
 #include "audio/AudioEngine.h"
 #include "ui/PianoRoll.h"
 #include "ui/TransportComponent.h"
+#include "audio/AudioRecorder.h"
 
 //==============================================================================
 /*
@@ -26,6 +27,8 @@ public:
     void paint (juce::Graphics& g) override;
     void resized() override;
     void timerCallback() override;
+    
+   
 
 private:
     //==============================================================================
@@ -33,6 +36,15 @@ private:
     AudioEngine audioEngine;
     PianoRoll pianoRoll;
     TransportComponent transport;
+    std::unique_ptr<juce::FileChooser> fileChooser;
+    juce::Viewport pianoViewport;
+    AudioRecorder recorder;
+    
+    juce::TextButton arrangementButton { "Arrangement" };
+    juce::TextButton pianoToolButton { "Piano Tool" };
+
+    // Temporary placeholder until you build the real ArrangementView
+    juce::Component arrangementView;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
