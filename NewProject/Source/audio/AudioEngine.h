@@ -17,10 +17,16 @@
 #include <mutex>
 //#include "../ui/PianoRoll.h"
 #include "../Note.h"
+#include "AudioTrack.h"
 
 class AudioEngine
 {
 public:
+    enum class PlaybackMode
+    {
+        Piano,
+        Arrangement
+    };
     AudioEngine();
     ~AudioEngine();
 
@@ -46,6 +52,9 @@ public:
     
     void setNumBars (int newNumBars) { numBars.store (juce::jmax (1, newNumBars)); }
        int getNumBars() const { return numBars.load(); }
+    void setArrangementTracks (std::vector<AudioTrack> newTracks);
+    
+    void setPlaybackMode (PlaybackMode newMode) { playbackMode = newMode; }
 
 private:
     double currentSampleRate { 44100.0 };
@@ -59,6 +68,10 @@ private:
     std::atomic<double> bpm { 120.0 };
 
     double playheadBeat = 0.0;
+    
+    std::mutex arrangementMutex;
+    std::vector<AudioTrack> arrangementTracks;
+    PlaybackMode playbackMode { PlaybackMode::Piano };
 };
     
 

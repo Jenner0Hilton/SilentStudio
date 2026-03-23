@@ -5,6 +5,7 @@
 #include "ui/PianoRoll.h"
 #include "ui/TransportComponent.h"
 #include "audio/AudioRecorder.h"
+#include "ui/ArrangementView.h"
 
 //==============================================================================
 /*
@@ -43,8 +44,11 @@ private:
     juce::TextButton arrangementButton { "Arrangement" };
     juce::TextButton pianoToolButton { "Piano Tool" };
 
-    // Temporary placeholder until you build the real ArrangementView
-    juce::Component arrangementView;
+    juce::VideoComponent videoPlayer {true};
+    juce::TextButton importVideoButton { "Import Video" };
+    
+    ArrangementView arrangementView;
+    juce::Viewport arrangementViewport;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

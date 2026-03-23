@@ -5,6 +5,10 @@
   <MAINGROUP id="HBeSHf" name="SilentStudio">
     <GROUP id="{A4F9F146-7E49-B7DD-C2CA-B4A7F2A7B01F}" name="Source">
       <GROUP id="{B15141E0-9798-C71F-E97D-021DCE060EA5}" name="ui">
+        <FILE id="UNwa8U" name="ArrangementView.cpp" compile="1" resource="0"
+              file="Source/ui/ArrangementView.cpp"/>
+        <FILE id="od2bO1" name="ArrangementView.h" compile="0" resource="0"
+              file="Source/ui/ArrangementView.h"/>
         <FILE id="zofC2Z" name="PianoRoll.cpp" compile="1" resource="0" file="Source/ui/PianoRoll.cpp"/>
         <FILE id="YRK5xG" name="PianoRoll.h" compile="0" resource="0" file="Source/ui/PianoRoll.h"/>
         <FILE id="h8wRYM" name="TransportComponent.cpp" compile="1" resource="0"
@@ -23,11 +27,13 @@
         <FILE id="W85mkS" name="SynthVoice.h" compile="0" resource="0" file="Source/instruments/SynthVoice.h"/>
       </GROUP>
       <GROUP id="{925AB151-4EA1-709E-8667-AD80C2BCA9E3}" name="audio">
+        <FILE id="J86fOY" name="AudioClip.h" compile="0" resource="0" file="Source/audio/AudioClip.h"/>
         <FILE id="o9rrit" name="AudioEngine.cpp" compile="1" resource="0" file="Source/audio/AudioEngine.cpp"/>
         <FILE id="MgiJPx" name="AudioEngine.h" compile="0" resource="0" file="Source/audio/AudioEngine.h"/>
         <FILE id="ZaWirg" name="AudioRecorder.cpp" compile="1" resource="0"
               file="Source/audio/AudioRecorder.cpp"/>
         <FILE id="FokiTP" name="AudioRecorder.h" compile="0" resource="0" file="Source/audio/AudioRecorder.h"/>
+        <FILE id="yc4x7i" name="AudioTrack.h" compile="0" resource="0" file="Source/audio/AudioTrack.h"/>
         <FILE id="vhnKTL" name="Track.cpp" compile="1" resource="0" file="Source/audio/Track.cpp"/>
         <FILE id="qLI9dg" name="Track.h" compile="0" resource="0" file="Source/audio/Track.h"/>
       </GROUP>
@@ -56,6 +62,7 @@
     <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_video" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
   </MODULES>
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1"/>
   <EXPORTFORMATS>
@@ -78,6 +85,7 @@
         <MODULEPATH id="juce_gui_basics" path="../../../Desktop/JUCE/modules"/>
         <MODULEPATH id="juce_gui_extra" path="../../../Desktop/JUCE/modules"/>
         <MODULEPATH id="juce_audio_processors_headless" path="../../../Desktop/JUCE/modules"/>
+        <MODULEPATH id="juce_video" path="../../../Desktop/JUCE/modules"/>
       </MODULEPATHS>
     </XCODE_MAC>
   </EXPORTFORMATS>

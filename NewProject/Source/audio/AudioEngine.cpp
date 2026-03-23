@@ -34,9 +34,11 @@ void AudioEngine::prepareToPlay (double sampleRate, int samplesPerBlock)
 void AudioEngine::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
     bufferToFill.clearActiveBufferRegion();
-
+    
+    if (playbackMode == PlaybackMode::Piano)
+    {
         juce::MidiBuffer midi;
-
+        
         if (playing.load())
         {
             // Copy notes safely (never hold a lock during audio rendering)
@@ -45,55 +47,206 @@ void AudioEngine::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferT
                 const std::scoped_lock lock (noteMutex);
                 localNotes = notes;
             }
-
+            
             auto sr = currentSampleRate;
             auto blockSamples = bufferToFill.numSamples;
             auto secondsPerBeat = 60.0 / bpm.load();
-
+            
             auto blockSeconds = (double) blockSamples / sr;
             auto blockBeats = blockSeconds / secondsPerBeat;
-
+            
             auto blockStartBeat = playheadBeat;
             auto blockEndBeat = playheadBeat + blockBeats;
-
+            
             for (const auto& n : localNotes)
             {
                 auto noteOnBeat  = n.startBeat;
                 auto noteOffBeat = n.startBeat + n.lengthBeats;
-
+                
                 // If note-on happens within this block
                 if (noteOnBeat >= blockStartBeat && noteOnBeat < blockEndBeat)
                 {
                     auto t = (noteOnBeat - blockStartBeat) / blockBeats;
                     int sampleOffset = (int) std::round (t * blockSamples);
-
+                    
                     midi.addEvent (juce::MidiMessage::noteOn (1, n.midiNote, (juce::uint8) 100),
                                    sampleOffset);
                 }
-
+                
                 // If note-off happens within this block
                 if (noteOffBeat >= blockStartBeat && noteOffBeat < blockEndBeat)
                 {
                     auto t = (noteOffBeat - blockStartBeat) / blockBeats;
                     int sampleOffset = (int) std::round (t * blockSamples);
-
+                    
                     midi.addEvent (juce::MidiMessage::noteOff (1, n.midiNote),
                                    sampleOffset);
                 }
             }
-
+            
             playheadBeat += blockBeats;
             
             auto loopBeats = numBars.load() * 4.0;
-            // loop after 4 bars for now
+            
             if (playheadBeat >= loopBeats)
                 playheadBeat = 0.0;
         }
-
+        
         synth.renderNextBlock (*bufferToFill.buffer,
                                midi,
                                bufferToFill.startSample,
                                bufferToFill.numSamples);
+    }
+    
+    // Mix arrangement WAV clips
+    /*std::vector<AudioTrack> localTracks;
+     {
+     const std::scoped_lock lock (arrangementMutex);
+     localTracks = arrangementTracks;
+     }
+     
+     auto sr = currentSampleRate;
+     auto blockSamples = bufferToFill.numSamples;
+     auto blockStartBeat = playheadBeat;
+     auto secondsPerBeat = 60.0 / bpm.load();
+     auto blockSeconds = (double) blockSamples / sr;
+     auto blockBeats = blockSeconds / secondsPerBeat;
+     auto blockEndBeat = blockStartBeat + blockBeats;
+     
+     for (const auto& track : localTracks)
+     {
+     for (const auto& clip : track.clips)
+     {
+     if (clip.audioData == nullptr)
+     continue;
+     
+     auto clipStartBeat = clip.startBeat;
+     auto clipEndBeat   = clip.startBeat + clip.lengthBeats;
+     
+     // no overlap
+     if (clipEndBeat <= blockStartBeat || clipStartBeat >= blockEndBeat)
+     continue;
+     
+     auto* clipBuffer = clip.audioData.get();
+     int clipNumChannels = clipBuffer->getNumChannels();
+     int clipNumSamples  = clipBuffer->getNumSamples();
+     
+     // beat overlap
+     double overlapStartBeat = juce::jmax (blockStartBeat, clipStartBeat);
+     double overlapEndBeat   = juce::jmin (blockEndBeat, clipEndBeat);
+     
+     // convert overlap into sample ranges
+     double clipStartOffsetBeats = overlapStartBeat - clipStartBeat;
+     double blockStartOffsetBeats = overlapStartBeat - blockStartBeat;
+     double overlapLengthBeats = overlapEndBeat - overlapStartBeat;
+     
+     int sourceStartSample = (int) std::round ((clipStartOffsetBeats / clip.lengthBeats) * clipNumSamples);
+     int destStartSample   = bufferToFill.startSample
+     + (int) std::round ((blockStartOffsetBeats / blockBeats) * blockSamples);
+     int samplesToCopy     = (int) std::round ((overlapLengthBeats / blockBeats) * blockSamples);
+     
+     sourceStartSample = juce::jlimit (0, clipNumSamples - 1, sourceStartSample);
+     samplesToCopy = juce::jlimit (0, juce::jmin (clipNumSamples - sourceStartSample,
+     bufferToFill.buffer->getNumSamples() - destStartSample),
+     samplesToCopy);
+     
+     if (samplesToCopy <= 0)
+     continue;
+     
+     for (int destChannel = 0; destChannel < bufferToFill.buffer->getNumChannels(); ++destChannel)
+     {
+     int sourceChannel = juce::jmin (destChannel, clipNumChannels - 1);
+     
+     bufferToFill.buffer->addFrom (destChannel,
+     destStartSample,
+     *clipBuffer,
+     sourceChannel,
+     sourceStartSample,
+     samplesToCopy,
+     1.0f);
+     }
+     }
+     }
+     }*/
+    if (playbackMode == PlaybackMode::Arrangement)
+    {
+        if (playing.load())
+        {
+            std::vector<AudioTrack> localTracks;
+            {
+                const std::scoped_lock lock (arrangementMutex);
+                localTracks = arrangementTracks;
+            }
+            
+            auto sr = currentSampleRate;
+            auto blockSamples = bufferToFill.numSamples;
+            auto secondsPerBeat = 60.0 / bpm.load();
+            auto blockSeconds = (double) blockSamples / sr;
+            auto blockBeats = blockSeconds / secondsPerBeat;
+            
+            auto blockStartBeat = playheadBeat;
+            auto blockEndBeat = blockStartBeat + blockBeats;
+            
+            for (const auto& track : localTracks)
+            {
+                for (const auto& clip : track.clips)
+                {
+                    if (clip.audioData == nullptr)
+                        continue;
+                    
+                    auto clipStartBeat = clip.startBeat;
+                    auto clipEndBeat   = clip.startBeat + clip.lengthBeats;
+                    
+                    if (clipEndBeat <= blockStartBeat || clipStartBeat >= blockEndBeat)
+                        continue;
+                    
+                    auto* clipBuffer = clip.audioData.get();
+                    int clipNumChannels = clipBuffer->getNumChannels();
+                    int clipNumSamples  = clipBuffer->getNumSamples();
+                    
+                    double overlapStartBeat = juce::jmax (blockStartBeat, clipStartBeat);
+                    double overlapEndBeat   = juce::jmin (blockEndBeat, clipEndBeat);
+                    
+                    double clipStartOffsetBeats = overlapStartBeat - clipStartBeat;
+                    double blockStartOffsetBeats = overlapStartBeat - blockStartBeat;
+                    double overlapLengthBeats = overlapEndBeat - overlapStartBeat;
+                    
+                    int sourceStartSample = (int) std::round ((clipStartOffsetBeats / clip.lengthBeats) * clipNumSamples);
+                    int destStartSample   = bufferToFill.startSample
+                    + (int) std::round ((blockStartOffsetBeats / blockBeats) * blockSamples);
+                    int samplesToCopy     = (int) std::round ((overlapLengthBeats / blockBeats) * blockSamples);
+                    
+                    sourceStartSample = juce::jlimit (0, clipNumSamples - 1, sourceStartSample);
+                    samplesToCopy = juce::jlimit (0,
+                                                  juce::jmin (clipNumSamples - sourceStartSample,
+                                                              bufferToFill.buffer->getNumSamples() - destStartSample),
+                                                  samplesToCopy);
+                    
+                    if (samplesToCopy <= 0)
+                        continue;
+                    
+                    for (int destChannel = 0; destChannel < bufferToFill.buffer->getNumChannels(); ++destChannel)
+                    {
+                        int sourceChannel = juce::jmin (destChannel, clipNumChannels - 1);
+                        
+                        bufferToFill.buffer->addFrom (destChannel,
+                                                      destStartSample,
+                                                      *clipBuffer,
+                                                      sourceChannel,
+                                                      sourceStartSample,
+                                                      samplesToCopy,
+                                                      1.0f);
+                    }
+                }
+            }
+            
+            playheadBeat += blockBeats;
+            
+            auto loopBeats = numBars.load() * 4.0;
+            if (playheadBeat >= loopBeats)
+                playheadBeat = 0.0;
+        }
+    }
 }
 
 void AudioEngine::releaseResources()
@@ -235,4 +388,10 @@ bool AudioEngine::exportWav (const juce::File& outFile,
     // (if writer creation failed, stream would remain non-null)
 
     return writer->writeFromAudioSampleBuffer (renderBuffer, 0, totalSamples);
+}
+
+void AudioEngine::setArrangementTracks (std::vector<AudioTrack> newTracks)
+{
+    const std::scoped_lock lock (arrangementMutex);
+    arrangementTracks = std::move (newTracks);
 }

@@ -91,6 +91,15 @@ TransportComponent::TransportComponent()
         if (onAudioSettings)
             onAudioSettings();
     };
+    
+    //import button
+    addAndMakeVisible (importButton);
+
+    importButton.onClick = [this]
+    {
+        if (onImportWav)
+            onImportWav();
+    };
 
 }
 
@@ -117,6 +126,8 @@ void TransportComponent::resized()
     stopButton.setBounds(area.removeFromLeft(100));
     recordButton.setBounds (area.removeFromLeft (100));
     area.removeFromLeft (20);
+    
+    importButton.setBounds(area.removeFromLeft(100));
     
     area.removeFromLeft(20);
 

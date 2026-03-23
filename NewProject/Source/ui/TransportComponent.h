@@ -28,6 +28,7 @@ public:
     std::function<void(int)> onBarsChanged;
     std::function<void(bool)> onRecordToggled;
     std::function<void()> onAudioSettings;
+    std::function<void()> onImportWav;
     
     
     
@@ -48,5 +49,7 @@ public:
     
         juce::TextButton exportButton { "Export WAV" };
         juce::TextButton audioSettingsButton { "Audio Settings" };
+    
+        juce::TextButton importButton { "Import WAV" };
         
 };
