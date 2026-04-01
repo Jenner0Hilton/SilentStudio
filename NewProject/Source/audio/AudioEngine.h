@@ -55,6 +55,8 @@ public:
     void setArrangementTracks (std::vector<AudioTrack> newTracks);
     
     void setPlaybackMode (PlaybackMode newMode) { playbackMode = newMode; }
+    
+    double getArrangementPlayheadSeconds() const { return arrangementPlayheadSeconds; }
 
 private:
     double currentSampleRate { 44100.0 };
@@ -68,6 +70,7 @@ private:
     std::atomic<double> bpm { 120.0 };
 
     double playheadBeat = 0.0;
+    double arrangementPlayheadSeconds = 0.0;
     
     std::mutex arrangementMutex;
     std::vector<AudioTrack> arrangementTracks;

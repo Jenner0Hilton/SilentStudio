@@ -38,7 +38,7 @@ public:
     const std::vector<AudioTrack>& getTracks() const { return tracks; }
 
     double beatsPerBar = 4.0;
-    double pixelsPerBeat = 80.0;
+    double pixelsPerSecond = 100.0;
     int trackHeight = 80;
     int headerWidth = 120;
     
@@ -59,10 +59,12 @@ private:
     int selectedTrackIndex = -1;
     int selectedClipIndex = -1;
     bool isDraggingClip = false;
-    double dragOffsetBeats = 0.0;
+    double dragOffsetSeconds = 0.0;
 
     float beatToX (double beat) const;
     int trackToY (int trackIndex) const;
+    float timeToX (double seconds) const;
+    double xToTime (float x) const;
     double xToBeat (float x) const;
     int yToTrack (float y) const;
     double snapBeat (double beat) const;

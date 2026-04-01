@@ -112,7 +112,7 @@ MainComponent::MainComponent()
             auto wavFile = file.withFileExtension(".wav");
             DBG("Saving to: " << wavFile.getFullPathName());
 
-            bool ok = audioEngine.exportWav (wavFile, 16.0);
+            bool ok = audioEngine.exportWav (wavFile, 0.0);
 
             DBG(juce::String(ok ? "Export OK" : "Export FAILED" ));
 
@@ -380,7 +380,7 @@ void MainComponent::resized()
         
         auto arrangementWidth = (int) (arrangementView.getNumBars()
                                        * arrangementView.beatsPerBar
-                                       * arrangementView.pixelsPerBeat)
+                                       * arrangementView.pixelsPerSecond)
         + arrangementView.headerWidth;
         
         arrangementView.setSize (arrangementWidth, area.getHeight());

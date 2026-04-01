@@ -45,8 +45,13 @@ void ArrangementView::setNumBars (int newNumBars)
 
 float ArrangementView::beatToX (double beat) const
 {
-    return (float) (headerWidth + beat * pixelsPerBeat);
+    return (float) (headerWidth + beat * ((pixelsPerSecond * 60.0) / bpm));
 }
+float ArrangementView::timeToX (double seconds) const
+{
+    return (float) (headerWidth + seconds * pixelsPerSecond);
+}
+
 
 int ArrangementView::trackToY (int trackIndex) const
 {
@@ -176,12 +181,12 @@ void ArrangementView::drawPlayhead (juce::Graphics& g)
 
 void ArrangementView::addClipToTrack (const juce::File& file,
                                      int trackIndex,
-                                     double startBeat)
+                                     double startTimeSeconds)
 {
     if (trackIndex < 0 || trackIndex >= (int) tracks.size())
         return;
 
-    double lengthBeats = 4.0;
+    double lengthSeconds = 1.0;
     auto audioBuffer = std::make_shared<juce::AudioBuffer<float>>();
     double sourceSampleRate = 44100.0;
 
@@ -200,25 +205,18 @@ void ArrangementView::addClipToTrack (const juce::File& file,
         audioBuffer->setSize (numChannels, numSamples);
         reader->read (audioBuffer.get(), 0, numSamples, 0, true, true);
 
-        double durationSeconds = (double) numSamples / sourceSampleRate;
-        lengthBeats = durationSeconds * (bpm / 60.0);
-        lengthBeats = juce::jmax (0.25, lengthBeats);
-
-        DBG ("Loaded WAV: " << file.getFileName()
-             << " | seconds: " << durationSeconds
-             << " | beats: " << lengthBeats);
+        lengthSeconds = (double) numSamples / sourceSampleRate;
     }
     else
     {
-        DBG ("Failed to read WAV file: " << file.getFullPathName());
         return;
     }
 
     AudioClip clip;
     clip.file = file;
     clip.name = file.getFileName();
-    clip.startBeat = startBeat;
-    clip.lengthBeats = lengthBeats;
+    clip.startTimeSeconds = startTimeSeconds;
+    clip.lengthSeconds = lengthSeconds;
     clip.colour = juce::Colours::lightblue;
     clip.audioData = audioBuffer;
     clip.sourceSampleRate = sourceSampleRate;
@@ -231,9 +229,9 @@ void ArrangementView::addClipToTrack (const juce::File& file,
     repaint();
 }
 
-double ArrangementView::xToBeat (float x) const
+double ArrangementView::xToTime (float x) const
 {
-    return ((double) x - (double) headerWidth) / pixelsPerBeat;
+    return ((double) x - (double) headerWidth) / pixelsPerSecond;
 }
 
 int ArrangementView::yToTrack (float y) const
@@ -257,7 +255,7 @@ void ArrangementView::mouseDown (const juce::MouseEvent& e)
         return;
 
     lastClickedTrack = yToTrack ((float) e.y);
-    lastClickedBeat = snapBeat (xToBeat ((float) e.x));
+    lastClickedBeat = snapBeat (xToTime ((float) e.x));
     hasClickPosition = true;
 
     int hitTrack = -1;
@@ -270,7 +268,7 @@ void ArrangementView::mouseDown (const juce::MouseEvent& e)
         isDraggingClip = true;
 
         const auto& clip = tracks[(size_t) hitTrack].clips[(size_t) hitClip];
-        dragOffsetBeats = xToBeat ((float) e.x) - clip.startBeat;
+        dragOffsetSeconds = xToTime((float) e.x) - clip.startTimeSeconds;
     }
     else
     {
@@ -288,21 +286,21 @@ void ArrangementView::mouseDrag (const juce::MouseEvent& e)
         return;
 
     auto newTrack = yToTrack ((float) e.y);
-    auto newBeat = snapBeat (xToBeat ((float) e.x) - dragOffsetBeats);
+    auto newBeat = snapBeat (xToTime ((float) e.x) - dragOffsetSeconds);
     newBeat = juce::jmax (0.0, newBeat);
 
     auto clip = tracks[(size_t) selectedTrackIndex].clips[(size_t) selectedClipIndex];
 
     if (newTrack == selectedTrackIndex)
     {
-        tracks[(size_t) selectedTrackIndex].clips[(size_t) selectedClipIndex].startBeat = newBeat;
+        tracks[(size_t) selectedTrackIndex].clips[(size_t) selectedClipIndex].startTimeSeconds = newBeat;
     }
     else
     {
         tracks[(size_t) selectedTrackIndex].clips.erase (
             tracks[(size_t) selectedTrackIndex].clips.begin() + selectedClipIndex);
 
-        clip.startBeat = newBeat;
+        clip.startTimeSeconds = newBeat;
         tracks[(size_t) newTrack].clips.push_back (clip);
 
         selectedTrackIndex = newTrack;
@@ -326,8 +324,8 @@ juce::Rectangle<float> ArrangementView::getClipRect (int trackIndex, int clipInd
 {
     const auto& clip = tracks[(size_t) trackIndex].clips[(size_t) clipIndex];
 
-    auto x = beatToX (clip.startBeat);
-    auto w = (float) (clip.lengthBeats * pixelsPerBeat);
+    auto x = beatToX (clip.startTimeSeconds);
+    auto w = (float) (clip.lengthSeconds * pixelsPerSecond);
     auto y = (float) trackToY (trackIndex) + 10.0f;
 
     return { x, y, w, (float) trackHeight - 20.0f };
@@ -359,7 +357,7 @@ void ArrangementView::setBpm (double newBpm)
 {
     bpm = newBpm;
 }
-
+ 
 bool ArrangementView::keyPressed (const juce::KeyPress& key)
 {
     if ((key == juce::KeyPress::deleteKey || key == juce::KeyPress::backspaceKey)

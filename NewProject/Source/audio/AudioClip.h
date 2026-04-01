@@ -15,8 +15,8 @@ struct AudioClip
 {
     juce::File file;
     juce::String name = "Clip";
-    double startBeat = 0.0;
-    double lengthBeats = 4.0;
+    double startTimeSeconds = 0.0;
+    double lengthSeconds = 1.0;
     juce::Colour colour = juce::Colours::skyblue;
     
     std::shared_ptr<juce::AudioBuffer<float>> audioData;
