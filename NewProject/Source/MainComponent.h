@@ -6,6 +6,9 @@
 #include "ui/TransportComponent.h"
 #include "audio/AudioRecorder.h"
 #include "ui/ArrangementView.h"
+#include "ui/SampleBrowser.h"
+#include "ui/InstrumentBrowser.h"
+#include "InstrumentLibrary.h"
 
 //==============================================================================
 /*
@@ -29,6 +32,11 @@ public:
     void resized() override;
     void timerCallback() override;
     
+    void loadSampleLibrary();
+    void importWavToLibrary (const juce::File& sourceFile);
+    
+    void updateArrangementVideoPlayback();
+    void importVideoToTrack(const juce::File& file);
    
 
 private:
@@ -40,6 +48,11 @@ private:
     std::unique_ptr<juce::FileChooser> fileChooser;
     juce::Viewport pianoViewport;
     AudioRecorder recorder;
+    SampleBrowser sampleBrowser;
+    InstrumentBrowser instrumentBrowser;
+    InstrumentLibrary instrumentLibrary;
+    
+    juce::File getSampleLibraryFolder() const;
     
     juce::TextButton arrangementButton { "Arrangement" };
     juce::TextButton pianoToolButton { "Piano Tool" };
@@ -49,6 +62,18 @@ private:
     
     ArrangementView arrangementView;
     juce::Viewport arrangementViewport;
+    
+    juce::TextButton addTrackButton { "+ Track" };
+    juce::TextButton removeTrackButton { "- Track" };
+    
+    juce::File currentLoadedVideoFile;
+    
+    juce::File pendingVideoFile;
+    bool waitingForVideoDuration = false;
+    
+    int videoDurationPollCount = 0;
+    
+    juce::TextButton loadSampleInstrumentButton { "Load Sample Instr" };
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

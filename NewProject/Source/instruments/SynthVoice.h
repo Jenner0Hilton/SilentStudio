@@ -10,6 +10,8 @@
 
 #pragma once
 #include <JuceHeader.h>
+#include "../InstrumentType.h"
+#include "../InstrumentPlaybackMode.h"
 
 class SynthVoice : public juce::SynthesiserVoice
 {
@@ -32,8 +34,19 @@ public:
     void renderNextBlock (juce::AudioBuffer<float>&,
                           int startSample,
                           int numSamples) override;
+    
+    void setInstrumentType (InstrumentType type) { instrumentType = type; }
+    void setPlaybackMode (InstrumentPlaybackMode mode) { playbackMode = mode; }
+
+    void setSampleData (std::shared_ptr<juce::AudioBuffer<float>> newSample,
+                            double sampleRate,
+                            int rootNote);
+    
+    
 
 private:
+    float getOscSample (float phase);
+    
     juce::dsp::Oscillator<float> oscillator;
     juce::ADSR adsr;
     juce::ADSR::Parameters adsrParams;
@@ -42,5 +55,15 @@ private:
 
     double currentSampleRate { 44100.0 };
     float level { 0.0f };
+    
+    InstrumentType instrumentType = InstrumentType::Sine;
+    InstrumentPlaybackMode playbackMode = InstrumentPlaybackMode::Oscillator;
+    
+    std::shared_ptr<juce::AudioBuffer<float>> sampleData;
+    double sampleDataSampleRate = 44100.0;
+    int sampleRootMidiNote = 60;
+
+    double sampleReadPosition = 0.0;
+    double sampleReadIncrement = 1.0;
 };
 

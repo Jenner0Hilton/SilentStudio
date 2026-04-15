@@ -17,6 +17,7 @@ struct AudioClip
     juce::String name = "Clip";
     double startTimeSeconds = 0.0;
     double lengthSeconds = 1.0;
+    double sourceOffsetSeconds = 0.0; // where playback begins inside the WAV
     juce::Colour colour = juce::Colours::skyblue;
     
     std::shared_ptr<juce::AudioBuffer<float>> audioData;

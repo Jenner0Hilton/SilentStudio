@@ -11,6 +11,7 @@
 #pragma once
 #include <JuceHeader.h>
 #include "../Note.h"
+#include "../InstrumentType.h"
 
 class PianoRoll : public juce::Component
 {
@@ -43,6 +44,12 @@ public:
     bool keyPressed (const juce::KeyPress& key) override;
     void mouseDrag (const juce::MouseEvent& e) override;
     void mouseUp (const juce::MouseEvent& e) override;
+    
+    void setCurrentInstrument (InstrumentType type) { currentInstrument = type; }
+    
+    void setCurrentBuiltInInstrument (InstrumentType type);
+    void setCurrentUserInstrument (const juce::String& instrumentId);
+    void setCurrentPlaybackMode (InstrumentPlaybackMode mode);
 
 private:
     double bpm = 120.0;
@@ -70,5 +77,9 @@ private:
     bool isNoteSelected (int index) const;
     
     juce::Point<float> lastMousePosition;
-    //
+    
+    InstrumentType currentInstrument = InstrumentType::Sine;
+    
+    InstrumentPlaybackMode currentPlaybackMode = InstrumentPlaybackMode::Oscillator;
+    juce::String currentUserInstrumentId;
 };

@@ -9,10 +9,17 @@
 */
 
 #pragma once
+#include "InstrumentType.h"
+#include "InstrumentPlaybackMode.h"
 
 struct Note
 {
     int midiNote = 60;
     double startBeat = 0.0;
     double lengthBeats = 1.0;
+    
+    InstrumentPlaybackMode playbackMode = InstrumentPlaybackMode::Oscillator;
+    InstrumentType instrument = InstrumentType::Sine;
+    
+    juce::String userInstrumentId;
 };

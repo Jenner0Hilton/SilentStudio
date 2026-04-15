@@ -12,10 +12,27 @@
 #include <JuceHeader.h>
 #include "../audio/AudioTrack.h"
 
-class ArrangementView : public juce::Component
+class ArrangementView : public juce::Component, public juce::DragAndDropTarget
 {
 public:
     ArrangementView();
+    enum class DragMode
+    {
+        None,
+        Move,
+        TrimStart,
+        TrimEnd
+    };
+
+    DragMode dragMode = DragMode::None;
+    double dragStartMouseTime = 0.0;
+    double originalClipStartTime = 0.0;
+    double originalClipLength = 0.0;
+    double originalSourceOffset = 0.0;
+
+    float edgeHitWidth = 8.0f;
+    
+    DragMode getDragModeForPosition (juce::Point<float> pos, int trackIndex, int clipIndex) const;
 
     void paint (juce::Graphics& g) override;
     void resized() override;
@@ -28,7 +45,7 @@ public:
     void setNumBars (int newNumBars);
     int getNumBars() const { return numBars; }
 
-    void addClipToTrack (const juce::File& file, int trackIndex, double startBeat);
+    void addClipToTrack (const juce::File& file, int trackIndex, double startTimeSeconds, double targetSampleRate);
 
     int getLastClickedTrack() const { return lastClickedTrack; }
     double getLastClickedBeat() const { return lastClickedBeat; }
@@ -43,6 +60,17 @@ public:
     int headerWidth = 120;
     
     bool keyPressed (const juce::KeyPress& key) override;
+    double getLastClickedTimeSeconds() const { return lastClickedTimeSeconds; }
+    
+    void setTrackCount (int newCount);
+    void addTrack();
+    void removeLastTrack();
+    int getTrackCount() const { return (int) tracks.size(); }
+    
+    void renameTrack (int trackIndex, const juce::String& newName);
+    
+    void addVideoClipToTrack (const juce::File& file, int trackIndex, double startTimeSeconds, double lengthSeconds);
+    void setVideoClipLength (int trackIndex, int clipIndex, double newLengthSeconds);
 
 private:
     std::vector<AudioTrack> tracks;
@@ -60,6 +88,7 @@ private:
     int selectedClipIndex = -1;
     bool isDraggingClip = false;
     double dragOffsetSeconds = 0.0;
+    double lastClickedTimeSeconds = 0.0;
 
     float beatToX (double beat) const;
     int trackToY (int trackIndex) const;
@@ -76,4 +105,28 @@ private:
     void drawTracks (juce::Graphics& g);
     void drawClips (juce::Graphics& g);
     void drawPlayhead (juce::Graphics& g);
+    
+    void drawWaveformInClip (juce::Graphics& g,
+                             const AudioClip& clip,
+                             juce::Rectangle<float> clipRect);
+    bool isInterestedInDragSource (const SourceDetails& dragSourceDetails) override;
+    void itemDropped (const SourceDetails& dragSourceDetails) override;
+    
+    int headerYToTrack (float y) const;
+    void showRenameTrackDialog (int trackIndex);
+    void mouseDoubleClick (const juce::MouseEvent& e) override;
+    
+    
+    
+    enum class HeaderButtonType
+    {
+        None,
+        Mute,
+        Solo
+    };
+
+    juce::Rectangle<float> getMuteButtonRect (int trackIndex) const;
+    juce::Rectangle<float> getSoloButtonRect (int trackIndex) const;
+    HeaderButtonType hitTestHeaderButton (juce::Point<float> pos, int& outTrackIndex) const;
+    
 };

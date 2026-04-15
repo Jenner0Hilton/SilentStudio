@@ -25,6 +25,79 @@ MainComponent::MainComponent()
         deviceManager.addAudioCallback (&recorder);
     }
     
+    addAndMakeVisible (loadSampleInstrumentButton);
+    loadSampleInstrumentButton.setVisible (true);
+
+    loadSampleInstrumentButton.onClick = [this]
+    {
+        fileChooser = std::make_unique<juce::FileChooser>(
+            "Create Sample Instrument",
+            juce::File::getSpecialLocation(juce::File::userDocumentsDirectory),
+            "*.wav");
+
+        auto flags = juce::FileBrowserComponent::openMode
+                   | juce::FileBrowserComponent::canSelectFiles;
+
+        fileChooser->launchAsync (flags, [this](const juce::FileChooser& fc)
+        {
+            auto file = fc.getResult();
+            fileChooser.reset();
+
+            if (file == juce::File{})
+                return;
+
+            auto instrumentName = file.getFileNameWithoutExtension();
+
+            bool saved = instrumentLibrary.addSampleInstrument (file, instrumentName, 60);
+
+            if (saved)
+            {
+                instrumentLibrary.load();
+                instrumentBrowser.setUserInstruments (instrumentLibrary.getInstruments());
+                audioEngine.setUserInstruments (instrumentLibrary.getInstruments());
+                DBG ("Saved sample instrument: " << instrumentName);
+            }
+            else
+            {
+                DBG ("Failed to save sample instrument");
+            }
+        });
+    };
+    
+    addAndMakeVisible (instrumentBrowser);
+    instrumentBrowser.setVisible (true);
+    //instrumentBrowser.setSelectedInstruments (InstrumentType::Sine);
+    pianoRoll.setCurrentInstrument (InstrumentType::Sine);
+    audioEngine.setCurrentInstrument (InstrumentType::Sine);
+    instrumentBrowser.onInstrumentChosen = [this](const InstrumentItem& item)
+    {
+        if (item.kind == BrowserInstrumentKind::BuiltIn)
+        {
+            pianoRoll.setCurrentPlaybackMode (InstrumentPlaybackMode::Oscillator);
+            pianoRoll.setCurrentBuiltInInstrument (item.builtInType);
+            pianoRoll.setCurrentUserInstrument ("");
+        }
+        else if (item.kind == BrowserInstrumentKind::UserSample)
+        {
+            pianoRoll.setCurrentPlaybackMode (InstrumentPlaybackMode::Sample);
+            pianoRoll.setCurrentUserInstrument (item.userInstrument.id);
+        }
+    };
+    
+    instrumentLibrary.load();
+    instrumentBrowser.setUserInstruments (instrumentLibrary.getInstruments());
+    
+    addAndMakeVisible (sampleBrowser);
+    sampleBrowser.setVisible (false);
+    sampleBrowser.onFileChosen = [this](const juce::File& file)
+    {
+        arrangementView.addClipToTrack (file,
+                                        arrangementView.getLastClickedTrack(),
+                                        arrangementView.getLastClickedTimeSeconds(),audioEngine.getCurrentSampleRate());
+    };
+    loadSampleLibrary();
+    
+    
     addAndMakeVisible(transport);
     addAndMakeVisible(pianoViewport);
     
@@ -34,6 +107,24 @@ MainComponent::MainComponent()
 
     addAndMakeVisible (arrangementViewport);
     addAndMakeVisible (pianoViewport);
+    
+    addAndMakeVisible (addTrackButton);
+    addAndMakeVisible (removeTrackButton);
+
+    addTrackButton.setVisible (false);
+    removeTrackButton.setVisible (false);
+
+    addTrackButton.onClick = [this]
+    {
+        arrangementView.addTrack();
+        resized();
+    };
+
+    removeTrackButton.onClick = [this]
+    {
+        arrangementView.removeLastTrack();
+        resized();
+    };
 
     arrangementViewport.setViewedComponent (&arrangementView, false);
     pianoViewport.setViewedComponent (&pianoRoll, false);
@@ -47,6 +138,13 @@ MainComponent::MainComponent()
         arrangementViewport.setVisible (true);
         pianoViewport.setVisible (false);
         audioEngine.setPlaybackMode (AudioEngine::PlaybackMode::Arrangement);
+        sampleBrowser.setVisible (true);
+        instrumentBrowser.setVisible (false);
+        loadSampleInstrumentButton.setVisible (false);
+        
+        addTrackButton.setVisible(true);
+        removeTrackButton.setVisible(true);
+        
         videoPlayer.setVisible (true);
         importVideoButton.setVisible (true);
         resized();
@@ -58,6 +156,14 @@ MainComponent::MainComponent()
         arrangementViewport.setVisible (false);
         pianoViewport.setVisible (true);
         audioEngine.setPlaybackMode (AudioEngine::PlaybackMode::Piano);
+        
+        addTrackButton.setVisible (false);
+        removeTrackButton.setVisible (false);
+        
+        loadSampleInstrumentButton.setVisible (true);
+
+        instrumentBrowser.setVisible (true);
+        sampleBrowser.setVisible (false);
         videoPlayer.setVisible (false);
         importVideoButton.setVisible (false);
         resized();
@@ -74,6 +180,8 @@ MainComponent::MainComponent()
     transport.onStop = [this]
     {
         audioEngine.stop();
+        videoPlayer.stop();
+        videoPlayer.setPlayPosition(0.0);
     };
     
     transport.onBpmChanged = [this](double newBpm)
@@ -227,8 +335,12 @@ MainComponent::MainComponent()
 
             if (file == juce::File{})
                 return;
+            
+            //sampleBrowser.addFile (file);
 
-            arrangementView.addClipToTrack (file, arrangementView.getLastClickedTrack(), arrangementView.getLastClickedBeat()); 
+            importWavToLibrary(file);
+            
+            arrangementView.addClipToTrack (file, arrangementView.getLastClickedTrack(), arrangementView.getLastClickedBeat(), audioEngine.getCurrentSampleRate());
         });
     };
     
@@ -244,7 +356,7 @@ MainComponent::MainComponent()
         fileChooser = std::make_unique<juce::FileChooser>(
             "Import Video",
             juce::File::getSpecialLocation(juce::File::userDocumentsDirectory),
-            "*.mov;*.mp4;*.m4v;*.avi");
+            "*.mp4;*.mov;*.m4v");
 
         auto flags = juce::FileBrowserComponent::openMode
                    | juce::FileBrowserComponent::canSelectFiles;
@@ -257,10 +369,7 @@ MainComponent::MainComponent()
             if (file == juce::File{})
                 return;
 
-            videoPlayer.load (juce::URL { file });
-            videoPlayer.setVisible (true);
-
-            DBG ("Loaded video: " << file.getFullPathName());
+            importVideoToTrack (file);
         });
     };
     // end of video player
@@ -369,39 +478,222 @@ void MainComponent::resized()
     auto topBar = area.removeFromTop (40);
     arrangementButton.setBounds (topBar.removeFromLeft (120).reduced (5));
     pianoToolButton.setBounds (topBar.removeFromLeft (120).reduced (5));
+    addTrackButton.setBounds (topBar.removeFromLeft (100).reduced (5));
+    removeTrackButton.setBounds (topBar.removeFromLeft (100).reduced (5));
     importVideoButton.setBounds (topBar.removeFromLeft (140).reduced (5));
+    
+    loadSampleInstrumentButton.setBounds (topBar.removeFromLeft (160).reduced (5));
     
     if (arrangementViewport.isVisible())
     {
         auto videoArea = area.removeFromTop (220).reduced (8);
         videoPlayer.setBounds (videoArea);
         
-        arrangementViewport.setBounds (area);
+        auto contentArea = area;
+        auto browserArea = contentArea.removeFromLeft (220).reduced (4);
+        sampleBrowser.setBounds (browserArea);
+        
+        arrangementViewport.setBounds (contentArea);
         
         auto arrangementWidth = (int) (arrangementView.getNumBars()
                                        * arrangementView.beatsPerBar
                                        * arrangementView.pixelsPerSecond)
         + arrangementView.headerWidth;
         
-        arrangementView.setSize (arrangementWidth, area.getHeight());
+        auto arrangementHeight = arrangementView.getTrackCount() * arrangementView.trackHeight;
+        arrangementView.setSize (arrangementWidth, juce::jmax (contentArea.getHeight(), arrangementHeight));
     }
     else
     {
-        pianoViewport.setBounds (area);
-        
-        auto pianoWidth = (int) (pianoRoll.getNumBars()
-                                 * pianoRoll.beatsPerBar
-                                 * pianoRoll.pixelsPerBeat);
-        
-        pianoRoll.setSize (pianoWidth, area.getHeight());
+        auto pianoArea = area;
+            auto browserArea = pianoArea.removeFromLeft (220).reduced (4);
+
+            instrumentBrowser.setBounds (browserArea);
+            pianoViewport.setBounds (pianoArea);
+
+            auto pianoWidth = (int) (pianoRoll.getNumBars()
+                                     * pianoRoll.beatsPerBar
+                                     * pianoRoll.pixelsPerBeat);
+
+            pianoRoll.setSize (pianoWidth, pianoArea.getHeight());
     }
 }
 
 void MainComponent::timerCallback()
 {
-    pianoRoll.setPlayhead (audioEngine.getPlayheadBeat());
-    arrangementView.setPlayheadBeat (audioEngine.getPlayheadBeat());
+    if (waitingForVideoDuration)
+    {
+        ++videoDurationPollCount;
+
+        double durationSeconds = videoPlayer.getVideoDuration();
+        DBG ("Polled video duration: " << durationSeconds);
+
+        if (durationSeconds > 0.0)
+        {
+            arrangementView.addVideoClipToTrack (
+                pendingVideoFile,
+                0,
+                arrangementView.getLastClickedTimeSeconds(),
+                durationSeconds
+            );
+
+            currentLoadedVideoFile = pendingVideoFile;
+            waitingForVideoDuration = false;
+            pendingVideoFile = juce::File {};
+            videoDurationPollCount = 0;
+
+            videoPlayer.stop();
+
+            DBG ("Added video clip with real duration: " << durationSeconds);
+        }
+        else if (videoDurationPollCount > 100) // about 5 seconds at 20 Hz
+        {
+            DBG ("Timed out waiting for video duration");
+            waitingForVideoDuration = false;
+            pendingVideoFile = juce::File {};
+            videoDurationPollCount = 0;
+        }
+    }
     
-    audioEngine.setNotes (pianoRoll.getNotes());
-    audioEngine.setArrangementTracks (arrangementView.getTracks());
+    pianoRoll.setPlayhead (audioEngine.getPlayheadBeat());
+    arrangementView.setPlayheadBeat (audioEngine.getArrangementPlayheadSeconds());
+
+    if (pianoViewport.isVisible())
+        audioEngine.setNotes (pianoRoll.getNotes());
+    else if (arrangementViewport.isVisible())
+        audioEngine.setArrangementTracks (arrangementView.getTracks());
+
+    for (const auto& n : pianoRoll.getNotes())
+    {
+        DBG ("Note midi=" << n.midiNote
+             << " beat=" << n.startBeat
+             << " mode=" << (n.playbackMode == InstrumentPlaybackMode::Sample ? "sample" : "osc")
+             << " builtIn=" << (int) n.instrument
+             << " userId=" << n.userInstrumentId);
+    }
+    updateArrangementVideoPlayback();
+}
+
+juce::File MainComponent::getSampleLibraryFolder() const
+{
+    auto appData = juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory);
+    auto folder = appData.getChildFile ("MyDAW").getChildFile ("Samples");
+
+    if (! folder.exists())
+        folder.createDirectory();
+
+    DBG ("Sample library folder: " << folder.getFullPathName());
+    return folder;
+}
+
+void MainComponent::loadSampleLibrary()
+{
+    sampleBrowser.clear();
+    auto folder = getSampleLibraryFolder();
+
+    juce::Array<juce::File> wavFiles;
+    folder.findChildFiles (wavFiles, juce::File::findFiles, false, "*.wav");
+
+    for (const auto& file : wavFiles)
+        sampleBrowser.addFile (file);
+}
+
+void MainComponent::importWavToLibrary (const juce::File& sourceFile)
+{
+    auto libraryFolder = getSampleLibraryFolder();
+
+    auto destFile = libraryFolder.getChildFile (sourceFile.getFileName());
+
+    // avoid overwrite conflicts by appending a number
+    if (destFile.existsAsFile())
+        destFile = destFile.getNonexistentSibling();
+
+    bool copied = sourceFile.copyFileTo (destFile);
+
+    if (copied)
+    {
+        sampleBrowser.addFile (destFile);
+        DBG ("Imported WAV to library: " << destFile.getFullPathName());
+    }
+    else
+    {
+        DBG ("Failed to copy WAV into library");
+    }
+}
+
+void MainComponent::updateArrangementVideoPlayback()
+{
+    if (! arrangementViewport.isVisible())
+        return;
+
+    const double playheadSec = audioEngine.getArrangementPlayheadSeconds();
+    const auto& tracks = arrangementView.getTracks();
+
+    if (tracks.empty())
+        return;
+
+    const auto& videoTrack = tracks[0];
+    if (videoTrack.type != TrackType::Video)
+        return;
+
+    for (const auto& clip : videoTrack.videoClips)
+    {
+        const double clipStart = clip.startTimeSeconds;
+                const double clipEnd   = clip.startTimeSeconds + clip.lengthSeconds;
+
+                if (playheadSec >= clipStart && playheadSec < clipEnd)
+                {
+                    const double clipRelativeTime = playheadSec - clipStart;
+
+                    if (currentLoadedVideoFile != clip.file)
+                    {
+                        auto result = videoPlayer.load (clip.file);
+                        if (result.failed())
+                        {
+                            DBG ("Failed to load video clip: " << result.getErrorMessage());
+                            return;
+                        }
+
+                        currentLoadedVideoFile = clip.file;
+                    }
+
+                    const double currentVideoPos = videoPlayer.getPlayPosition();
+
+                    // only seek if we're noticeably out of sync
+                    if (std::abs (currentVideoPos - clipRelativeTime) > 0.05)
+                        videoPlayer.setPlayPosition (clipRelativeTime);
+
+                    if (! videoPlayer.isPlaying())
+                        videoPlayer.play();
+
+                    return;
+                }
+    }
+
+    if(videoPlayer.isPlaying())
+        videoPlayer.stop();
+    
+    currentLoadedVideoFile = juce::File{};
+}
+
+void MainComponent::importVideoToTrack (const juce::File& file)
+{
+    if (waitingForVideoDuration)
+    {
+        DBG ("Already waiting for a video duration");
+        return;
+    }
+    videoDurationPollCount = 0;
+    auto result = videoPlayer.load (file);
+
+    if (result.failed())
+    {
+        DBG ("Failed to load video: " << result.getErrorMessage());
+        return;
+    }
+
+    pendingVideoFile = file;
+    waitingForVideoDuration = true;
+
+    DBG ("Waiting for video duration: " << file.getFileName());
 }

@@ -18,6 +18,11 @@
 //#include "../ui/PianoRoll.h"
 #include "../Note.h"
 #include "AudioTrack.h"
+#include "../InstrumentType.h"
+#include "../InstrumentPlaybackMode.h"
+#include "../UserInstrument.h"
+#include <memory>
+#include <unordered_map>
 
 class AudioEngine
 {
@@ -57,11 +62,29 @@ public:
     void setPlaybackMode (PlaybackMode newMode) { playbackMode = newMode; }
     
     double getArrangementPlayheadSeconds() const { return arrangementPlayheadSeconds; }
+    
+    double getCurrentSampleRate() const { return currentSampleRate; }
+    
+    void setCurrentInstrument (InstrumentType type);
+    
+    //juce::Synthesiser& getSynthForInstrument (InstrumentType type);
+   // void prepareSynth (juce::Synthesiser& synth, double sampleRate, int samplesPerBlock, int numChannels);
+    
+    bool loadSampleInstrumentFromFile (const juce::File& file, int rootMidiNote = 60);
+    void setPlaybackModeForVoices (InstrumentPlaybackMode mode);
+    
+    void setUserInstruments (const std::vector<UserInstrument>& instruments);
+    void rebuildSampleSynths();
 
 private:
     double currentSampleRate { 44100.0 };
+    int currentSampleRootMidiNote = 60;
     std::atomic<int> numBars { 4 };
     juce::Synthesiser synth;
+    juce::Synthesiser sineSynth;
+    juce::Synthesiser squareSynth;
+    juce::Synthesiser sawSynth;
+    juce::Synthesiser triangleSynth;
            
     std::mutex noteMutex;
     std::vector<Note> notes;
@@ -72,9 +95,23 @@ private:
     double playheadBeat = 0.0;
     double arrangementPlayheadSeconds = 0.0;
     
+    double getArrangementEndTimeSeconds (const std::vector<AudioTrack>& tracks) const;
+    
     std::mutex arrangementMutex;
     std::vector<AudioTrack> arrangementTracks;
     PlaybackMode playbackMode { PlaybackMode::Piano };
+    
+    InstrumentType currentInstrument = InstrumentType::Sine;
+    InstrumentPlaybackMode currentPlaybackMode = InstrumentPlaybackMode::Oscillator;
+    std::shared_ptr<juce::AudioBuffer<float>> currentSampleInstrument;
+    double currentSampleInstrumentRate = 44100.0;
+    
+    std::unordered_map<std::string, std::unique_ptr<juce::Synthesiser>> sampleSynths;
+    std::unordered_map<std::string, UserInstrument> userInstrumentMap;
+    
+    juce::Synthesiser& getSynthForInstrument (InstrumentType type);
+    void prepareSynth (juce::Synthesiser& synth, double sampleRate, int samplesPerBlock, int numChannels);
+    bool loadSampleIntoSynth (juce::Synthesiser& synth, const juce::File& file, int rootMidiNote);
 };
     
 

@@ -97,7 +97,11 @@ void PianoRoll::mouseDown (const juce::MouseEvent& e)
     n.midiNote = midi;
     n.startBeat = beat;
     n.lengthBeats = 1.0;
-
+    
+    n.instrument = currentInstrument;
+    n.playbackMode = currentPlaybackMode;
+    n.userInstrumentId = currentUserInstrumentId;
+    
     notes.push_back (n);
     repaint();
 }
@@ -327,4 +331,19 @@ void PianoRoll::paint (juce::Graphics& g)
     auto x = beatToX(playheadBeat);
     g.setColour(juce::Colours::red);
     g.drawLine(x, 0.0f, x, (float)getHeight(), 2.0f);
+}
+
+void PianoRoll::setCurrentBuiltInInstrument (InstrumentType type)
+{
+    currentInstrument = type;
+}
+
+void PianoRoll::setCurrentUserInstrument (const juce::String& instrumentId)
+{
+    currentUserInstrumentId = instrumentId;
+}
+
+void PianoRoll::setCurrentPlaybackMode (InstrumentPlaybackMode mode)
+{
+    currentPlaybackMode = mode;
 }
