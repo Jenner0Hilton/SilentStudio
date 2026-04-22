@@ -849,3 +849,9 @@ void ArrangementView::setVideoClipLength (int trackIndex, int clipIndex, double 
     tracks[(size_t) trackIndex].videoClips[(size_t) clipIndex].lengthSeconds = newLengthSeconds;
     repaint();
 }
+
+void ArrangementView::setTracks (const std::vector<AudioTrack>& newTracks)
+{
+    tracks = newTracks;
+    repaint();
+}

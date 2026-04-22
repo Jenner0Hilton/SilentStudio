@@ -10,6 +10,7 @@
 		094857C85CD50424B06F1AC7 /* SynthVoice.cpp */ = {isa = PBXBuildFile; fileRef = 9FDBD33DF680B2B0183E82A0; };
 		113586695E426039B0A15DA8 /* SynthSound.cpp */ = {isa = PBXBuildFile; fileRef = 2D860B12AF06D4BD66F1D916; };
 		14B64CA264C3F0C0543CD566 /* include_juce_audio_formats.mm */ = {isa = PBXBuildFile; fileRef = CAEC0C0AD19661E9EFF29C30; };
+		1BC791EC10AE97431F8ACA26 /* ProjectManager.cpp */ = {isa = PBXBuildFile; fileRef = A3FBA384B3085DEC3E8B085A; };
 		204F2A6F9CC8AE9B21ED57DA /* AVFoundation.framework */ = {isa = PBXBuildFile; fileRef = B1731F09E656509E76CF8E50; };
 		22AD7771B3B365F6F2BADDCE /* include_juce_gui_basics.mm */ = {isa = PBXBuildFile; fileRef = 68DAE4F2D2DF22147DD90CC9; };
 		24F01A29E42313CC4BC154A8 /* CoreAudioKit.framework */ = {isa = PBXBuildFile; fileRef = A1920972F82A629A36878E9E; };
@@ -119,6 +120,7 @@
 		9FD9D7A52CAC7EA1E188E7FC /* SynthSound.h */ /* SynthSound.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SynthSound.h; path = ../../Source/instruments/SynthSound.h; sourceTree = SOURCE_ROOT; };
 		9FDBD33DF680B2B0183E82A0 /* SynthVoice.cpp */ /* SynthVoice.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SynthVoice.cpp; path = ../../Source/instruments/SynthVoice.cpp; sourceTree = SOURCE_ROOT; };
 		A1920972F82A629A36878E9E /* CoreAudioKit.framework */ /* CoreAudioKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudioKit.framework; path = System/Library/Frameworks/CoreAudioKit.framework; sourceTree = SDKROOT; };
+		A3FBA384B3085DEC3E8B085A /* ProjectManager.cpp */ /* ProjectManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ProjectManager.cpp; path = ../../Source/ProjectManager.cpp; sourceTree = SOURCE_ROOT; };
 		A45C3E5DC3955AEB515B462E /* CoreMIDI.framework */ /* CoreMIDI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMIDI.framework; path = System/Library/Frameworks/CoreMIDI.framework; sourceTree = SDKROOT; };
 		A496A6B9286D2B81D898F6B9 /* CoreAudio.framework */ /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		A4D4B18C8B4B5DA3B05B12C2 /* SynthVoice.h */ /* SynthVoice.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SynthVoice.h; path = ../../Source/instruments/SynthVoice.h; sourceTree = SOURCE_ROOT; };
@@ -145,6 +147,7 @@
 		E44AF97BE82A18FB032932B6 /* PianoRoll.h */ /* PianoRoll.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PianoRoll.h; path = ../../Source/ui/PianoRoll.h; sourceTree = SOURCE_ROOT; };
 		E9339677A589E4D0266017EB /* AudioClip.h */ /* AudioClip.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AudioClip.h; path = ../../Source/audio/AudioClip.h; sourceTree = SOURCE_ROOT; };
 		EF9A86FC4B8F2AD5EE968486 /* WebKit.framework */ /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
+		F17A30FED9CD265E5E82BAA7 /* ProjectManager.h */ /* ProjectManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ProjectManager.h; path = ../../Source/ProjectManager.h; sourceTree = SOURCE_ROOT; };
 		FA05797D564D0364D778F076 /* juce_audio_utils */ /* juce_audio_utils */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_audio_utils; path = /Users/jacquaehilton/Desktop/JUCE/modules/juce_audio_utils; sourceTree = "<absolute>"; };
 		FBB3C5C783DC2B43562CD5D3 /* juce_events */ /* juce_events */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_events; path = /Users/jacquaehilton/Desktop/JUCE/modules/juce_events; sourceTree = "<absolute>"; };
 		FC2D3A58F4A6C1AB65C335BC /* SamplerInstrument.cpp */ /* SamplerInstrument.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SamplerInstrument.cpp; path = ../../Source/instruments/SamplerInstrument.cpp; sourceTree = SOURCE_ROOT; };
@@ -197,6 +200,8 @@
 				27A70C898139AD047DED6233,
 				6A7A6935AEAF6D9DD164C9BD,
 				7FF52299E3D414531D54FCDC,
+				A3FBA384B3085DEC3E8B085A,
+				F17A30FED9CD265E5E82BAA7,
 				81D654BF35E52E49CD846D88,
 			);
 			name = core;
@@ -463,6 +468,7 @@
 				3B74F5B3CAC15646509DFCE2,
 				9A4E8532740CA137EC633FEE,
 				BB06D4E2AF53034BF073DA1D,
+				1BC791EC10AE97431F8ACA26,
 				C4185F34ACAC1871E4C55D5B,
 				68E98F1D19EBCE6F44D2648D,
 				14B64CA264C3F0C0543CD566,

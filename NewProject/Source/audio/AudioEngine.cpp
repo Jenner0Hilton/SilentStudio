@@ -19,6 +19,7 @@ AudioEngine::AudioEngine() {
             {
                 auto* voice = new SynthVoice();
                 voice->setInstrumentType (type);
+                voice->setPlaybackMode (InstrumentPlaybackMode::Oscillator);
                 synth.addVoice (voice);
             }
 
@@ -32,7 +33,7 @@ AudioEngine::AudioEngine() {
 }
 AudioEngine::~AudioEngine() {}
 
-void AudioEngine::prepareToPlay (double sampleRate, int samplesPerBlock)
+/*void AudioEngine::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     synth.setCurrentPlaybackSampleRate (sampleRate);
 
@@ -48,6 +49,17 @@ void AudioEngine::prepareToPlay (double sampleRate, int samplesPerBlock)
     
     for (auto& [id, synth] : sampleSynths)
         prepareSynth (*synth, sampleRate, samplesPerBlock, 2);
+    
+    rebuildSampleSynths();
+}*/
+void AudioEngine::prepareToPlay (double sampleRate, int samplesPerBlock)
+{
+    currentSampleRate = sampleRate;
+
+    prepareSynth (sineSynth, sampleRate, samplesPerBlock, 2);
+    prepareSynth (squareSynth, sampleRate, samplesPerBlock, 2);
+    prepareSynth (sawSynth, sampleRate, samplesPerBlock, 2);
+    prepareSynth (triangleSynth, sampleRate, samplesPerBlock, 2);
     
     rebuildSampleSynths();
 }

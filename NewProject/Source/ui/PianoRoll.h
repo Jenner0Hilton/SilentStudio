@@ -50,6 +50,8 @@ public:
     void setCurrentBuiltInInstrument (InstrumentType type);
     void setCurrentUserInstrument (const juce::String& instrumentId);
     void setCurrentPlaybackMode (InstrumentPlaybackMode mode);
+    
+    void setNotes (const std::vector<Note>& newNotes);
 
 private:
     double bpm = 120.0;

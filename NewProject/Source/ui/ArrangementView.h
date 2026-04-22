@@ -71,6 +71,8 @@ public:
     
     void addVideoClipToTrack (const juce::File& file, int trackIndex, double startTimeSeconds, double lengthSeconds);
     void setVideoClipLength (int trackIndex, int clipIndex, double newLengthSeconds);
+    
+    void setTracks (const std::vector<AudioTrack>& newTracks);
 
 private:
     std::vector<AudioTrack> tracks;

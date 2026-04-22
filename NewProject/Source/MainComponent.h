@@ -9,6 +9,7 @@
 #include "ui/SampleBrowser.h"
 #include "ui/InstrumentBrowser.h"
 #include "InstrumentLibrary.h"
+#include "ProjectManager.h"
 
 //==============================================================================
 /*
@@ -37,6 +38,19 @@ public:
     
     void updateArrangementVideoPlayback();
     void importVideoToTrack(const juce::File& file);
+    
+    void saveProjectAs (const juce::String& projectName);
+    void loadProject (const juce::String& projectName);
+
+    juce::var noteToVar (const Note& note) const;
+    juce::var audioClipToVar (const AudioClip& clip) const;
+    juce::var videoClipToVar (const VideoClip& clip) const;
+    juce::var trackToVar (const AudioTrack& track) const;
+
+    bool loadNoteFromVar (const juce::var& v, Note& outNote) const;
+    bool loadAudioClipFromVar (const juce::var& v, AudioClip& outClip) const;
+    bool loadVideoClipFromVar (const juce::var& v, VideoClip& outClip) const;
+    bool loadTrackFromVar (const juce::var& v, AudioTrack& outTrack) const;
    
 
 private:
@@ -51,6 +65,8 @@ private:
     SampleBrowser sampleBrowser;
     InstrumentBrowser instrumentBrowser;
     InstrumentLibrary instrumentLibrary;
+    ProjectManager projectManager;
+    juce::String currentProjectName = "Untitled";
     
     juce::File getSampleLibraryFolder() const;
     
@@ -74,6 +90,9 @@ private:
     int videoDurationPollCount = 0;
     
     juce::TextButton loadSampleInstrumentButton { "Load Sample Instr" };
+    
+    juce::TextButton saveProjectButton{"Save Project"};
+    juce::TextButton loadProjectButton{"Load Project"};
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

@@ -67,8 +67,8 @@ MainComponent::MainComponent()
     addAndMakeVisible (instrumentBrowser);
     instrumentBrowser.setVisible (true);
     //instrumentBrowser.setSelectedInstruments (InstrumentType::Sine);
-    pianoRoll.setCurrentInstrument (InstrumentType::Sine);
-    audioEngine.setCurrentInstrument (InstrumentType::Sine);
+    //pianoRoll.setCurrentInstrument (InstrumentType::Sine);
+    //audioEngine.setCurrentInstrument (InstrumentType::Sine);
     instrumentBrowser.onInstrumentChosen = [this](const InstrumentItem& item)
     {
         if (item.kind == BrowserInstrumentKind::BuiltIn)
@@ -86,6 +86,7 @@ MainComponent::MainComponent()
     
     instrumentLibrary.load();
     instrumentBrowser.setUserInstruments (instrumentLibrary.getInstruments());
+    audioEngine.setUserInstruments (instrumentLibrary.getInstruments());
     
     addAndMakeVisible (sampleBrowser);
     sampleBrowser.setVisible (false);
@@ -245,6 +246,48 @@ MainComponent::MainComponent()
         auto bounds = pianoViewport.getBounds();
         auto totalWidth = (int) (pianoRoll.getNumBars() * pianoRoll.beatsPerBar * pianoRoll.pixelsPerBeat);
         pianoRoll.setSize (totalWidth, bounds.getHeight());
+    };
+    
+    addAndMakeVisible (saveProjectButton);
+    addAndMakeVisible (loadProjectButton);
+    
+    saveProjectButton.onClick = [this]
+    {
+        auto* alert = new juce::AlertWindow ("Save Project",
+                                             "Enter a project name:",
+                                             juce::AlertWindow::NoIcon);
+
+        alert->addTextEditor ("projectName", currentProjectName, "Project name:");
+        alert->addButton ("Save", 1);
+        alert->addButton ("Cancel", 0);
+
+        alert->enterModalState (true,
+            juce::ModalCallbackFunction::create ([this, alert] (int result)
+            {
+                if (result == 1)
+                {
+                    auto name = alert->getTextEditorContents ("projectName").trim();
+                    if (name.isNotEmpty())
+                        saveProjectAs (name);
+                }
+            }),
+            true);
+    };
+    
+    loadProjectButton.onClick = [this]
+    {
+        auto projects = projectManager.listProjects();
+
+        juce::PopupMenu menu;
+        for (int i = 0; i < projects.size(); ++i)
+            menu.addItem (i + 1, projects[i]);
+
+        menu.showMenuAsync (juce::PopupMenu::Options(),
+            [this, projects] (int result)
+            {
+                if (result > 0 && result <= projects.size())
+                    loadProject (projects[result - 1]);
+            });
     };
     
     
@@ -478,6 +521,8 @@ void MainComponent::resized()
     auto topBar = area.removeFromTop (40);
     arrangementButton.setBounds (topBar.removeFromLeft (120).reduced (5));
     pianoToolButton.setBounds (topBar.removeFromLeft (120).reduced (5));
+    saveProjectButton.setBounds (topBar.removeFromLeft (120).reduced (5));
+    loadProjectButton.setBounds (topBar.removeFromLeft (120).reduced (5));
     addTrackButton.setBounds (topBar.removeFromLeft (100).reduced (5));
     removeTrackButton.setBounds (topBar.removeFromLeft (100).reduced (5));
     importVideoButton.setBounds (topBar.removeFromLeft (140).reduced (5));
@@ -696,4 +741,279 @@ void MainComponent::importVideoToTrack (const juce::File& file)
     waitingForVideoDuration = true;
 
     DBG ("Waiting for video duration: " << file.getFileName());
+}
+
+
+juce::var MainComponent::noteToVar (const Note& note) const
+{
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty ("midiNote", note.midiNote);
+    obj->setProperty ("startBeat", note.startBeat);
+    obj->setProperty ("lengthBeats", note.lengthBeats);
+    obj->setProperty ("playbackMode", note.playbackMode == InstrumentPlaybackMode::Sample ? "sample" : "oscillator");
+    obj->setProperty ("instrument", (int) note.instrument);
+    obj->setProperty ("userInstrumentId", note.userInstrumentId);
+    return juce::var (obj);
+}
+
+bool MainComponent::loadNoteFromVar (const juce::var& v, Note& outNote) const
+{
+    if (! v.isObject())
+        return false;
+
+    auto* obj = v.getDynamicObject();
+    if (obj == nullptr)
+        return false;
+
+    outNote.midiNote = (int) obj->getProperty ("midiNote");
+    outNote.startBeat = (double) obj->getProperty ("startBeat");
+    outNote.lengthBeats = (double) obj->getProperty ("lengthBeats");
+
+    auto mode = obj->getProperty ("playbackMode").toString();
+    outNote.playbackMode = (mode == "sample") ? InstrumentPlaybackMode::Sample
+                                              : InstrumentPlaybackMode::Oscillator;
+
+    outNote.instrument = static_cast<InstrumentType> ((int) obj->getProperty ("instrument"));
+    outNote.userInstrumentId = obj->getProperty ("userInstrumentId").toString();
+    return true;
+}
+
+juce::var MainComponent::audioClipToVar (const AudioClip& clip) const
+{
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty ("file", clip.file.getFullPathName());
+    obj->setProperty ("name", clip.name);
+    obj->setProperty ("startTimeSeconds", clip.startTimeSeconds);
+    obj->setProperty ("lengthSeconds", clip.lengthSeconds);
+    obj->setProperty ("sourceOffsetSeconds", clip.sourceOffsetSeconds);
+    return juce::var (obj);
+}
+
+bool MainComponent::loadAudioClipFromVar (const juce::var& v, AudioClip& outClip) const
+{
+    if (! v.isObject())
+        return false;
+
+    auto* obj = v.getDynamicObject();
+    if (obj == nullptr)
+        return false;
+
+    outClip.file = juce::File (obj->getProperty ("file").toString());
+    outClip.name = obj->getProperty ("name").toString();
+    outClip.startTimeSeconds = (double) obj->getProperty ("startTimeSeconds");
+    outClip.lengthSeconds = (double) obj->getProperty ("lengthSeconds");
+    outClip.sourceOffsetSeconds = (double) obj->getProperty ("sourceOffsetSeconds");
+    outClip.colour = juce::Colours::transparentBlack;
+
+    juce::AudioFormatManager fm;
+    fm.registerBasicFormats();
+
+    std::unique_ptr<juce::AudioFormatReader> reader (fm.createReaderFor (outClip.file));
+    if (reader == nullptr || audioEngine.getCurrentSampleRate() <= 0.0)
+        return false;
+
+    const double sourceSR = reader->sampleRate;
+    const int numChannels = (int) reader->numChannels;
+    const int sourceNumSamples = (int) reader->lengthInSamples;
+
+    juce::AudioBuffer<float> sourceBuffer;
+    sourceBuffer.setSize (numChannels, sourceNumSamples);
+    reader->read (&sourceBuffer, 0, sourceNumSamples, 0, true, true);
+
+    const double ratio = audioEngine.getCurrentSampleRate() / sourceSR;
+    const int resampledNumSamples = (int) std::ceil ((double) sourceNumSamples * ratio);
+
+    auto resampled = std::make_shared<juce::AudioBuffer<float>>();
+    resampled->setSize (numChannels, resampledNumSamples);
+
+    for (int ch = 0; ch < numChannels; ++ch)
+    {
+        const float* src = sourceBuffer.getReadPointer (ch);
+        float* dst = resampled->getWritePointer (ch);
+
+        for (int i = 0; i < resampledNumSamples; ++i)
+        {
+            const double srcPos = (double) i / ratio;
+            const int i0 = juce::jlimit (0, sourceNumSamples - 1, (int) std::floor (srcPos));
+            const int i1 = juce::jlimit (0, sourceNumSamples - 1, i0 + 1);
+            const float frac = (float) (srcPos - (double) i0);
+            dst[i] = src[i0] + frac * (src[i1] - src[i0]);
+        }
+    }
+
+    outClip.audioData = resampled;
+    outClip.sourceSampleRate = audioEngine.getCurrentSampleRate();
+    return true;
+}
+
+juce::var MainComponent::videoClipToVar (const VideoClip& clip) const
+{
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty ("file", clip.file.getFullPathName());
+    obj->setProperty ("name", clip.name);
+    obj->setProperty ("startTimeSeconds", clip.startTimeSeconds);
+    obj->setProperty ("lengthSeconds", clip.lengthSeconds);
+    return juce::var (obj);
+}
+
+bool MainComponent::loadVideoClipFromVar (const juce::var& v, VideoClip& outClip) const
+{
+    if (! v.isObject())
+        return false;
+
+    auto* obj = v.getDynamicObject();
+    if (obj == nullptr)
+        return false;
+
+    outClip.file = juce::File (obj->getProperty ("file").toString());
+    outClip.name = obj->getProperty ("name").toString();
+    outClip.startTimeSeconds = (double) obj->getProperty ("startTimeSeconds");
+    outClip.lengthSeconds = (double) obj->getProperty ("lengthSeconds");
+    outClip.colour = juce::Colours::mediumpurple;
+    return true;
+}
+
+juce::var MainComponent::trackToVar (const AudioTrack& track) const
+{
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty ("name", track.name);
+    obj->setProperty ("type", track.type == TrackType::Video ? "video" : "audio");
+    obj->setProperty ("muted", track.muted);
+    obj->setProperty ("solo", track.solo);
+
+    juce::Array<juce::var> audioClips;
+    for (const auto& clip : track.clips)
+        audioClips.add (audioClipToVar (clip));
+    obj->setProperty ("clips", juce::var (audioClips));
+
+    juce::Array<juce::var> videoClips;
+    for (const auto& clip : track.videoClips)
+        videoClips.add (videoClipToVar (clip));
+    obj->setProperty ("videoClips", juce::var (videoClips));
+
+    return juce::var (obj);
+}
+
+bool MainComponent::loadTrackFromVar (const juce::var& v, AudioTrack& outTrack) const
+{
+    if (! v.isObject())
+        return false;
+
+    auto* obj = v.getDynamicObject();
+    if (obj == nullptr)
+        return false;
+
+    outTrack.name = obj->getProperty ("name").toString();
+    outTrack.type = obj->getProperty ("type").toString() == "video" ? TrackType::Video : TrackType::Audio;
+    outTrack.muted = (bool) obj->getProperty ("muted");
+    outTrack.solo = (bool) obj->getProperty ("solo");
+    outTrack.clips.clear();
+    outTrack.videoClips.clear();
+
+    auto clipsVar = obj->getProperty ("clips");
+    if (clipsVar.isArray())
+    {
+        for (const auto& item : *clipsVar.getArray())
+        {
+            AudioClip clip;
+            if (loadAudioClipFromVar (item, clip))
+                outTrack.clips.push_back (clip);
+        }
+    }
+
+    auto videoClipsVar = obj->getProperty ("videoClips");
+    if (videoClipsVar.isArray())
+    {
+        for (const auto& item : *videoClipsVar.getArray())
+        {
+            VideoClip clip;
+            if (loadVideoClipFromVar (item, clip))
+                outTrack.videoClips.push_back (clip);
+        }
+    }
+
+    return true;
+}
+
+void MainComponent::saveProjectAs (const juce::String& projectName)
+{
+    auto* root = new juce::DynamicObject();
+    root->setProperty ("projectName", projectName);
+    root->setProperty ("bpm", audioEngine.getBpm());
+    root->setProperty ("numBars", arrangementView.getNumBars());
+
+    juce::Array<juce::var> notesArray;
+    for (const auto& n : pianoRoll.getNotes())
+        notesArray.add (noteToVar (n));
+    root->setProperty ("notes", juce::var (notesArray));
+
+    juce::Array<juce::var> tracksArray;
+    for (const auto& t : arrangementView.getTracks())
+        tracksArray.add (trackToVar (t));
+    root->setProperty ("tracks", juce::var (tracksArray));
+
+    auto jsonText = juce::JSON::toString (juce::var (root), true);
+    auto file = projectManager.getProjectFile (projectName);
+    file.replaceWithText (jsonText);
+
+    currentProjectName = projectName;
+    DBG ("Saved project: " << file.getFullPathName());
+}
+
+void MainComponent::loadProject (const juce::String& projectName)
+{
+    auto file = projectManager.getProjectFile (projectName);
+    if (! file.existsAsFile())
+        return;
+
+    auto parsed = juce::JSON::parse (file);
+    if (! parsed.isObject())
+        return;
+
+    auto* obj = parsed.getDynamicObject();
+    if (obj == nullptr)
+        return;
+
+    double bpm = (double) obj->getProperty ("bpm");
+    int numBars = (int) obj->getProperty ("numBars");
+
+    transport.setBpmValue (bpm);
+    audioEngine.setBpm (bpm);
+    arrangementView.setBpm (bpm);
+
+    pianoRoll.setNumBars (numBars);
+    arrangementView.setNumBars (numBars);
+    audioEngine.setNumBars (numBars);
+
+    std::vector<Note> notes;
+    auto notesVar = obj->getProperty ("notes");
+    if (notesVar.isArray())
+    {
+        for (const auto& item : *notesVar.getArray())
+        {
+            Note n;
+            if (loadNoteFromVar (item, n))
+                notes.push_back (n);
+        }
+    }
+    pianoRoll.setNotes (notes);
+
+    std::vector<AudioTrack> tracks;
+    auto tracksVar = obj->getProperty ("tracks");
+    if (tracksVar.isArray())
+    {
+        for (const auto& item : *tracksVar.getArray())
+        {
+            AudioTrack t;
+            if (loadTrackFromVar (item, t))
+                tracks.push_back (t);
+        }
+    }
+    arrangementView.setTracks (tracks);
+    audioEngine.setArrangementTracks (tracks);
+
+    currentProjectName = projectName;
+    resized();
+
+    DBG ("Loaded project: " << file.getFullPathName());
 }

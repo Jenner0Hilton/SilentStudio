@@ -60,6 +60,10 @@
               file="Source/InstrumentType.h"/>
         <FILE id="Tynp0L" name="Note.h" compile="0" resource="0" file="Source/Note.h"
               xcodeResource="0"/>
+        <FILE id="mq1l8z" name="ProjectManager.cpp" compile="1" resource="0"
+              file="Source/ProjectManager.cpp"/>
+        <FILE id="RwOuQ4" name="ProjectManager.h" compile="0" resource="0"
+              file="Source/ProjectManager.h"/>
         <FILE id="yQtRvj" name="UserInstrument.h" compile="0" resource="0"
               file="Source/UserInstrument.h"/>
       </GROUP>

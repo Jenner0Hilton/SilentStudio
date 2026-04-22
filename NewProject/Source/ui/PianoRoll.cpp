@@ -347,3 +347,9 @@ void PianoRoll::setCurrentPlaybackMode (InstrumentPlaybackMode mode)
 {
     currentPlaybackMode = mode;
 }
+
+void PianoRoll::setNotes (const std::vector<Note>& newNotes)
+{
+    notes = newNotes;
+    repaint();
+}
