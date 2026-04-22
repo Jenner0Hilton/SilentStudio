@@ -264,6 +264,7 @@ void ArrangementView::addClipToTrack (const juce::File& file,
     clip.name = file.getFileName();
     clip.startTimeSeconds = startTimeSeconds;
     clip.lengthSeconds = lengthSeconds;
+    clip.sourceLengthSeconds = lengthSeconds;
     clip.colour = juce::Colours::transparentBlack;
     clip.audioData = audioBuffer;
     clip.sourceSampleRate = sourceSampleRate;
@@ -402,7 +403,7 @@ void ArrangementView::mouseDrag (const juce::MouseEvent& e)
             selectedClipIndex = (int) tracks[(size_t) newTrack].clips.size() - 1;
         }
     }
-    else if (dragMode == DragMode::TrimStart)
+    /*else if (dragMode == DragMode::TrimStart)
     {
         auto& clip = tracks[(size_t) selectedTrackIndex].clips[(size_t) selectedClipIndex];
 
@@ -433,8 +434,54 @@ void ArrangementView::mouseDrag (const juce::MouseEvent& e)
                                                    totalSourceLength - clip.sourceOffsetSeconds,
                                                    clip.lengthSeconds);
             }
+    }*/
+    else if (dragMode == DragMode::TrimStart)
+    {
+        auto& clip = tracks[(size_t) selectedTrackIndex].clips[(size_t) selectedClipIndex];
+
+        if (clipEditMode == ClipEditMode::Trim)
+        {
+            const double originalRightEdge = originalClipStartTime + originalClipLength;
+
+            double newStart = juce::jmax (0.0, xToTime ((float) e.x));
+
+            double maxStart = originalRightEdge - minClipLength;
+            double minStart = originalClipStartTime - originalSourceOffset;
+
+            newStart = juce::jlimit (minStart, maxStart, newStart);
+
+            clip.startTimeSeconds = newStart;
+            clip.lengthSeconds = originalRightEdge - newStart;
+            clip.sourceOffsetSeconds = originalSourceOffset + (newStart - originalClipStartTime);
+            clip.sourceLengthSeconds = clip.lengthSeconds;
+
+            if (clip.audioData != nullptr)
+            {
+                double totalSourceLength =
+                    (double) clip.audioData->getNumSamples() / clip.sourceSampleRate;
+
+                clip.sourceOffsetSeconds = juce::jlimit (0.0, totalSourceLength, clip.sourceOffsetSeconds);
+                clip.sourceLengthSeconds = juce::jlimit (minClipLength,
+                                                         totalSourceLength - clip.sourceOffsetSeconds,
+                                                         clip.sourceLengthSeconds);
+                clip.lengthSeconds = clip.sourceLengthSeconds;
+            }
+        }
+        else // Stretch mode
+        {
+            const double originalRightEdge = originalClipStartTime + originalClipLength;
+
+            double newStart = juce::jmax (0.0, xToTime ((float) e.x));
+            double maxStart = originalRightEdge - minClipLength;
+            newStart = juce::jmin (newStart, maxStart);
+
+            clip.startTimeSeconds = newStart;
+            clip.lengthSeconds = originalRightEdge - newStart;
+            // sourceOffsetSeconds stays the same
+            // sourceLengthSeconds stays the same
+        }
     }
-    else if (dragMode == DragMode::TrimEnd)
+    /*else if (dragMode == DragMode::TrimEnd)
     {
         auto& clip = tracks[(size_t) selectedTrackIndex].clips[(size_t) selectedClipIndex];
 
@@ -462,6 +509,33 @@ void ArrangementView::mouseDrag (const juce::MouseEvent& e)
                 totalSourceLength - clip.sourceOffsetSeconds,
                 clip.lengthSeconds
             );
+        }
+    }*/
+    else if (dragMode == DragMode::TrimEnd)
+    {
+        auto& clip = tracks[(size_t) selectedTrackIndex].clips[(size_t) selectedClipIndex];
+
+        double newLength = juce::jmax (minClipLength, originalClipLength + delta);
+
+        if (clipEditMode == ClipEditMode::Trim)
+        {
+            if (clip.audioData != nullptr)
+            {
+                double totalSourceLength =
+                    (double) clip.audioData->getNumSamples() / clip.sourceSampleRate;
+
+                double maxLength = totalSourceLength - clip.sourceOffsetSeconds;
+                newLength = juce::jmin (newLength, maxLength);
+            }
+
+            clip.lengthSeconds = newLength;
+            clip.sourceLengthSeconds = newLength;
+        }
+        else // Stretch mode
+        {
+            clip.lengthSeconds = newLength;
+            // sourceLengthSeconds stays fixed
+            // sourceOffsetSeconds stays fixed
         }
     }
     

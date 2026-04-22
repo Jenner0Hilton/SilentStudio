@@ -178,7 +178,7 @@ void AudioEngine::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferT
         }
     }
     
-    if (playbackMode == PlaybackMode::Arrangement)
+    /*if (playbackMode == PlaybackMode::Arrangement)
     {
         if (playing.load())
         {
@@ -277,6 +277,117 @@ void AudioEngine::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferT
             double arrangementEndTime = getArrangementEndTimeSeconds (localTracks);
 
             // Add a small tail so the playhead can pass the end a little
+            double loopLengthSeconds = juce::jmax (1.0, arrangementEndTime + 0.25);
+
+            if (arrangementPlayheadSeconds >= loopLengthSeconds)
+                arrangementPlayheadSeconds = 0.0;
+        }
+    }*/
+    if (playbackMode == PlaybackMode::Arrangement)
+    {
+        if (playing.load())
+        {
+            std::vector<AudioTrack> localTracks;
+            {
+                const std::scoped_lock lock (arrangementMutex);
+                localTracks = arrangementTracks;
+            }
+
+            bool anySolo = false;
+            for (const auto& track : localTracks)
+            {
+                if (track.solo)
+                {
+                    anySolo = true;
+                    break;
+                }
+            }
+
+            auto sr = currentSampleRate;
+            auto blockSamples = bufferToFill.numSamples;
+            auto blockDurationSeconds = (double) blockSamples / sr;
+
+            auto blockStartTime = arrangementPlayheadSeconds;
+            auto blockEndTime   = blockStartTime + blockDurationSeconds;
+
+            for (const auto& track : localTracks)
+            {
+                if (anySolo)
+                {
+                    if (! track.solo)
+                        continue;
+                }
+                else
+                {
+                    if (track.muted)
+                        continue;
+                }
+
+                for (const auto& clip : track.clips)
+                {
+                    if (clip.audioData == nullptr)
+                        continue;
+
+                    const double clipStartTime = clip.startTimeSeconds;
+                    const double clipEndTime   = clip.startTimeSeconds + clip.lengthSeconds;
+
+                    if (clipEndTime <= blockStartTime || clipStartTime >= blockEndTime)
+                        continue;
+
+                    auto* clipBuffer = clip.audioData.get();
+                    const int clipNumChannels = clipBuffer->getNumChannels();
+                    const int clipNumSamples  = clipBuffer->getNumSamples();
+
+                    const double overlapStartTime = juce::jmax (blockStartTime, clipStartTime);
+                    const double overlapEndTime   = juce::jmin (blockEndTime, clipEndTime);
+
+                    const double blockOffsetSeconds = overlapStartTime - blockStartTime;
+                    const double overlapDurationSecs = overlapEndTime - overlapStartTime;
+
+                    const int destStartSample = bufferToFill.startSample
+                                              + (int) std::round (blockOffsetSeconds * sr);
+
+                    const int destSamples = (int) std::round (overlapDurationSecs * sr);
+
+                    if (destSamples <= 0)
+                        continue;
+
+                    double stretchRatio = 1.0;
+                    if (clip.lengthSeconds > 0.0)
+                        stretchRatio = clip.sourceLengthSeconds / clip.lengthSeconds;
+
+                    const double clipTimelineOffset = overlapStartTime - clipStartTime;
+                    const double sourceStartSeconds = clip.sourceOffsetSeconds
+                                                    + (clipTimelineOffset * stretchRatio);
+
+                    for (int destChannel = 0; destChannel < bufferToFill.buffer->getNumChannels(); ++destChannel)
+                    {
+                        const int sourceChannel = juce::jmin (destChannel, clipNumChannels - 1);
+
+                        float* dest = bufferToFill.buffer->getWritePointer (destChannel, destStartSample);
+                        const float* src = clipBuffer->getReadPointer (sourceChannel);
+
+                        for (int i = 0; i < destSamples; ++i)
+                        {
+                            const double sourcePosSeconds = sourceStartSeconds
+                                                          + (((double) i / sr) * stretchRatio);
+
+                            const double sourcePosSamples = sourcePosSeconds * clip.sourceSampleRate;
+
+                            const int i0 = juce::jlimit (0, clipNumSamples - 1, (int) std::floor (sourcePosSamples));
+                            const int i1 = juce::jlimit (0, clipNumSamples - 1, i0 + 1);
+                            const float frac = (float) (sourcePosSamples - (double) i0);
+
+                            const float sampleValue = src[i0] + frac * (src[i1] - src[i0]);
+                            dest[i] += sampleValue;
+                        }
+                    }
+                }
+            }
+
+            arrangementPlayheadSeconds += blockDurationSeconds;
+
+            double arrangementEndTime = getArrangementEndTimeSeconds (localTracks);
             double loopLengthSeconds = juce::jmax (1.0, arrangementEndTime + 0.25);
 
             if (arrangementPlayheadSeconds >= loopLengthSeconds)

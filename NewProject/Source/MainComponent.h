@@ -94,5 +94,7 @@ private:
     juce::TextButton saveProjectButton{"Save Project"};
     juce::TextButton loadProjectButton{"Load Project"};
     
+    juce::TextButton clipEditModeButton { "Mode: Trim" };
+    
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

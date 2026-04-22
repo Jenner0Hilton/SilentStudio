@@ -23,7 +23,14 @@ public:
         TrimStart,
         TrimEnd
     };
-
+    
+    enum class ClipEditMode
+    {
+        Trim,
+        Stretch
+    };
+    void setClipEditMode (ClipEditMode newMode) { clipEditMode = newMode; }
+    ClipEditMode getClipEditMode() const { return clipEditMode; }
     DragMode dragMode = DragMode::None;
     double dragStartMouseTime = 0.0;
     double originalClipStartTime = 0.0;
@@ -130,5 +137,6 @@ private:
     juce::Rectangle<float> getMuteButtonRect (int trackIndex) const;
     juce::Rectangle<float> getSoloButtonRect (int trackIndex) const;
     HeaderButtonType hitTestHeaderButton (juce::Point<float> pos, int& outTrackIndex) const;
+    ClipEditMode clipEditMode = ClipEditMode::Trim;
     
 };

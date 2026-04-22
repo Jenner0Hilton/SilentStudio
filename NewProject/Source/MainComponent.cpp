@@ -99,6 +99,24 @@ MainComponent::MainComponent()
     loadSampleLibrary();
     
     
+    addAndMakeVisible (clipEditModeButton);
+    clipEditModeButton.setVisible (false);
+
+    clipEditModeButton.onClick = [this]
+    {
+        if (arrangementView.getClipEditMode() == ArrangementView::ClipEditMode::Trim)
+        {
+            arrangementView.setClipEditMode (ArrangementView::ClipEditMode::Stretch);
+            clipEditModeButton.setButtonText ("Mode: Stretch");
+        }
+        else
+        {
+            arrangementView.setClipEditMode (ArrangementView::ClipEditMode::Trim);
+            clipEditModeButton.setButtonText ("Mode: Trim");
+        }
+    };
+    
+    
     addAndMakeVisible(transport);
     addAndMakeVisible(pianoViewport);
     
@@ -148,6 +166,8 @@ MainComponent::MainComponent()
         
         videoPlayer.setVisible (true);
         importVideoButton.setVisible (true);
+        
+        clipEditModeButton.setVisible (true);
         resized();
     };
 
@@ -167,6 +187,8 @@ MainComponent::MainComponent()
         sampleBrowser.setVisible (false);
         videoPlayer.setVisible (false);
         importVideoButton.setVisible (false);
+        
+        clipEditModeButton.setVisible (false);
         resized();
     };
     //end of arrangement for swapping shell
@@ -289,7 +311,8 @@ MainComponent::MainComponent()
                     loadProject (projects[result - 1]);
             });
     };
-    
+    //arrangementView.setTracks (tracks);
+    //audioEngine.setArrangementTracks (tracks);
     
     transport.onRecordToggled = [this](bool shouldRecord)
     {
@@ -416,6 +439,7 @@ MainComponent::MainComponent()
         });
     };
     // end of video player
+    
 }
 
 MainComponent::~MainComponent()
@@ -537,6 +561,9 @@ void MainComponent::resized()
         auto contentArea = area;
         auto browserArea = contentArea.removeFromLeft (220).reduced (4);
         sampleBrowser.setBounds (browserArea);
+        
+        auto EditModeArea = contentArea.removeFromLeft (220).reduced (4);
+        clipEditModeButton.setBounds (EditModeArea);
         
         arrangementViewport.setBounds (contentArea);
         
@@ -786,6 +813,7 @@ juce::var MainComponent::audioClipToVar (const AudioClip& clip) const
     obj->setProperty ("startTimeSeconds", clip.startTimeSeconds);
     obj->setProperty ("lengthSeconds", clip.lengthSeconds);
     obj->setProperty ("sourceOffsetSeconds", clip.sourceOffsetSeconds);
+    obj->setProperty ("sourceLengthSeconds", clip.sourceLengthSeconds);
     return juce::var (obj);
 }
 
@@ -803,7 +831,13 @@ bool MainComponent::loadAudioClipFromVar (const juce::var& v, AudioClip& outClip
     outClip.startTimeSeconds = (double) obj->getProperty ("startTimeSeconds");
     outClip.lengthSeconds = (double) obj->getProperty ("lengthSeconds");
     outClip.sourceOffsetSeconds = (double) obj->getProperty ("sourceOffsetSeconds");
+    outClip.sourceLengthSeconds = (double) obj->getProperty ("sourceLengthSeconds");
     outClip.colour = juce::Colours::transparentBlack;
+    
+    if (obj->hasProperty ("sourceLengthSeconds"))
+        outClip.sourceLengthSeconds = (double) obj->getProperty ("sourceLengthSeconds");
+    else
+        outClip.sourceLengthSeconds = outClip.lengthSeconds;
 
     juce::AudioFormatManager fm;
     fm.registerBasicFormats();
