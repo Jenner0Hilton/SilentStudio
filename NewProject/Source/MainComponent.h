@@ -51,7 +51,13 @@ public:
     bool loadAudioClipFromVar (const juce::var& v, AudioClip& outClip) const;
     bool loadVideoClipFromVar (const juce::var& v, VideoClip& outClip) const;
     bool loadTrackFromVar (const juce::var& v, AudioTrack& outTrack) const;
-   
+    
+    bool arrangementHasVideo() const;
+    void exportFinalArrangement();
+    void runFfmpegMux (const juce::File& videoFile,
+                       const juce::File& audioFile,
+                       const juce::File& outputFile);
+    juce::File getBundledFfmpeg() const;
 
 private:
     //==============================================================================
@@ -95,6 +101,9 @@ private:
     juce::TextButton loadProjectButton{"Load Project"};
     
     juce::TextButton clipEditModeButton { "Mode: Trim" };
+    juce::ComboBox noteLengthBox;
+    
+    juce::TextButton exportFinalButton { "Export Final" };
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

@@ -13,6 +13,7 @@
 
 PianoRoll::PianoRoll() {
     setWantsKeyboardFocus (true);
+    setMouseClickGrabsKeyboardFocus (true);
 }
 
 int PianoRoll::yToMidi (float y) const
@@ -53,10 +54,61 @@ void PianoRoll::setNumBars (int newNumBars)
 void PianoRoll::mouseDown (const juce::MouseEvent& e)
 {
     grabKeyboardFocus();
+    lastMousePosition = e.position;
+    DBG ("PianoRoll focused? " << (hasKeyboardFocus (true) ? "yes" : "no"));
+    
+    if (e.mods.isShiftDown())
+    {
+        isSelecting = true;
+        selectionStart = e.position;
+        selectionRect = juce::Rectangle<float> (selectionStart, selectionStart);
+
+        selectedNoteIndices.clear();
+
+        isDraggingNote = false;
+        noteDragMode = NoteDragMode::None;
+
+        repaint();
+        return;
+    }
+    int hitNote = -1;
+
+        if (hitTestNote (e.position, hitNote))
+        {
+            if (e.mods.isRightButtonDown())
+                {
+                    notes.erase (notes.begin() + hitNote);
+                    selectedNoteIndex = -1;
+                    isDraggingNote = false;
+                    noteDragMode = NoteDragMode::None;
+                    repaint();
+                    return;
+                }
+            
+            selectedNoteIndex = hitNote;
+            isDraggingNote = true;
+
+            noteDragMode = getNoteDragModeForPosition (e.position, hitNote);
+
+            const auto& n = notes[(size_t) hitNote];
+
+            dragStartBeat = xToBeat ((float) e.x);
+            originalNoteStartBeat = n.startBeat;
+            originalNoteLengthBeats = n.lengthBeats;
+
+            repaint();
+            return;
+        }
+
+        selectedNoteIndex = -1;
+        isDraggingNote = false;
+        noteDragMode = NoteDragMode::None;
+    
+    //grabKeyboardFocus();
     
     auto pos = e.position;
     int hitIndex = getNoteIndexAt (pos);
-    lastMousePosition = e.position;
+    //lastMousePosition = e.position;
 
     // Right-click (or Ctrl+click on Mac) deletes a note if clicked on one
     if (e.mods.isRightButtonDown() || e.mods.isCtrlDown())
@@ -78,11 +130,11 @@ void PianoRoll::mouseDown (const juce::MouseEvent& e)
         return;
     }
     // Start drag-selection
-        isSelecting = true;
+   /*     isSelecting = true;
         selectionStart = pos;
         selectionRect = juce::Rectangle<float> (selectionStart, selectionStart);
         selectedIndices.clear();
-        repaint();
+        repaint();*/
     
     // Otherwise, place a new note ... if issues arise look here first!!!!
     auto midi = yToMidi ((float) e.y);
@@ -96,7 +148,7 @@ void PianoRoll::mouseDown (const juce::MouseEvent& e)
     Note n;
     n.midiNote = midi;
     n.startBeat = beat;
-    n.lengthBeats = 1.0;
+    n.lengthBeats = defaultNoteLengthBeats;
     
     n.instrument = currentInstrument;
     n.playbackMode = currentPlaybackMode;
@@ -146,6 +198,53 @@ void PianoRoll::updateSelectionFromRect()
 
 void PianoRoll::mouseDrag (const juce::MouseEvent& e)
 {
+    if (isSelecting)
+    {
+        selectionRect = juce::Rectangle<float> (selectionStart, e.position).getSmallestIntegerContainer().toFloat();
+
+        selectedIndices.clear();
+
+        for (int i = 0; i < (int) notes.size(); ++i)
+        {
+            if (selectionRect.intersects (getNoteRect (i)))
+                selectedIndices.push_back (i);
+        }
+
+        repaint();
+        return;
+    }
+    if (! isDraggingNote || selectedNoteIndex < 0 || selectedNoteIndex >= (int) notes.size())
+            return;
+
+        auto& note = notes[(size_t) selectedNoteIndex];
+
+        double mouseBeat = xToBeat ((float) e.x);
+        double deltaBeat = mouseBeat - dragStartBeat;
+
+        constexpr double minNoteLength = 0.25; // 1/16 note if grid is quarter-beat
+
+        if (noteDragMode == NoteDragMode::ResizeEnd)
+        {
+            double newLength = originalNoteLengthBeats + deltaBeat;
+            newLength = juce::jmax (minNoteLength, newLength);
+            
+            
+            note.lengthBeats = snapBeat (newLength);
+            note.lengthBeats = juce::jmax (minNoteLength, note.lengthBeats);
+        }
+        else if (noteDragMode == NoteDragMode::Move)
+        {
+            double newStart = originalNoteStartBeat + deltaBeat;
+            newStart = juce::jmax (0.0, snapBeat (newStart));
+
+            note.startBeat = newStart;
+
+            // Optional: move vertically too
+            note.midiNote = yToMidi ((float) e.y);
+        }
+
+        repaint();
+   /*
     if (! isSelecting)
         return;
 
@@ -153,18 +252,22 @@ void PianoRoll::mouseDrag (const juce::MouseEvent& e)
                     juce::Rectangle<float> (selectionStart, selectionStart));
 
     selectionRect = selectionRect.getSmallestIntegerContainer().toFloat();
-    updateSelectionFromRect();
+    updateSelectionFromRect();*/
 }
 
 void PianoRoll::mouseUp (const juce::MouseEvent& e)
 {
     juce::ignoreUnused (e);
+    
+    isDraggingNote = false;
+    noteDragMode = NoteDragMode::None;
 
     if (isSelecting)
     {
         isSelecting = false;
         updateSelectionFromRect();
         repaint();
+        return;
     }
 }
 
@@ -216,32 +319,74 @@ void PianoRoll::pasteClipboardAt (double targetBeat, int targetMidi)
 
 bool PianoRoll::keyPressed (const juce::KeyPress& key)
 {
-    if (key == juce::KeyPress ('c', juce::ModifierKeys::commandModifier, 0))
+    DBG ("PianoRoll key pressed: " << key.getTextDescription());
+
+    const bool command = key.getModifiers().isCommandDown()
+                      || key.getModifiers().isCtrlDown();
+
+    //auto text = key.getTextCharacter();
+    const int keyCode = key.getKeyCode();
+
+    if (command && (keyCode == 'c' || keyCode == 'C'))
     {
-        copySelectedNotes();
+        clipboardNotes.clear();
+
+        if (selectedIndices.empty())
+        {
+            DBG ("Copy pressed, but no notes selected");
+            return true;
+        }
+
+        for (int index : selectedIndices)
+        {
+            if (index >= 0 && index < (int) notes.size())
+                clipboardNotes.push_back (notes[(size_t) index]);
+        }
+
+        DBG ("Copied notes: " << (int) clipboardNotes.size());
         return true;
     }
 
-    if (key == juce::KeyPress ('v', juce::ModifierKeys::commandModifier, 0))
+    if (command && (keyCode == 'v' || keyCode == 'V'))
     {
-        auto beat = snapBeat (xToBeat (lastMousePosition.x));
-        auto midi = yToMidi (lastMousePosition.y);
-        pasteClipboardAt (beat, midi);
+        if (clipboardNotes.empty())
+        {
+            DBG ("Paste pressed, but clipboard is empty");
+            return true;
+        }
+
+        double pasteBeat = snapBeat (xToBeat ((float) lastMousePosition.x));
+        int pasteMidi = yToMidi ((float) lastMousePosition.y);
+
+        pasteClipboardAt (pasteBeat, pasteMidi);
+
+        DBG ("Pasted notes");
         return true;
     }
-
+    
     if (key == juce::KeyPress::deleteKey || key == juce::KeyPress::backspaceKey)
     {
-        if (! selectedIndices.empty())
+        DBG ("Delete selected notes pressed");
+        DBG ("Selected count = " << (int) selectedIndices.size());
+
+        if (selectedIndices.empty())
+            return true;
+
+        // Sort descending so erasing does not shift the remaining indexes.
+        std::sort (selectedIndices.begin(), selectedIndices.end(), std::greater<int>());
+
+        for (int index : selectedIndices)
         {
-            std::sort (selectedIndices.rbegin(), selectedIndices.rend());
-
-            for (int index : selectedIndices)
+            if (index >= 0 && index < (int) notes.size())
                 notes.erase (notes.begin() + index);
-
-            selectedIndices.clear();
-            repaint();
         }
+
+        selectedIndices.clear();
+        selectedNoteIndex = -1;
+        isDraggingNote = false;
+        noteDragMode = NoteDragMode::None;
+
+        repaint();
         return true;
     }
 
@@ -283,27 +428,10 @@ void PianoRoll::paint (juce::Graphics& g)
         g.drawLine (x, 0.0f, x, (float) getHeight());
     }
 
-    // draw notes keeping this around incase issues arrise with size
-    /*for (const auto& n : notes)
-    {
-        auto x = beatToX (n.startBeat);
-        auto w = beatToX (n.lengthBeats);
-        auto y = midiToY (n.midiNote);
-
-        //g.setColour (juce::Colours::cornflowerblue.withAlpha (0.9f));
-        bool selected = isNoteSelected ((int) (&n - &notes[0]));
-
-        g.setColour (selected
-                     ? juce::Colours::orange.withAlpha (0.95f)
-                     : juce::Colours::cornflowerblue.withAlpha (0.9f));
-        g.fillRoundedRectangle (x, y + 1.0f, w, (float) rowHeight - 2.0f, 4.0f);
-
-        g.setColour (juce::Colours::white.withAlpha (0.7f));
-        g.drawRoundedRectangle (x, y + 1.0f, w, (float) rowHeight - 2.0f, 4.0f, 1.0f);
-    }*/
-    for (int i = 0; i < (int) notes.size(); ++i)
+    /*for (int i = 0; i < (int) notes.size(); ++i)
     {
         const auto& n = notes[(size_t) i];
+        auto noteRect = getNoteRect (i);
 
         auto x = beatToX (n.startBeat);
         auto w = beatToX (n.lengthBeats);
@@ -318,6 +446,29 @@ void PianoRoll::paint (juce::Graphics& g)
 
         g.setColour (juce::Colours::white.withAlpha (0.7f));
         g.drawRoundedRectangle (x, y + 1.0f, w, (float) rowHeight - 2.0f, 4.0f, 1.0f);
+    }*/
+    for (int i = 0; i < (int) notes.size(); ++i)
+    {
+        auto noteRect = getNoteRect (i);
+
+        bool selected = isNoteSelected (i);
+
+        g.setColour (selected
+                     ? juce::Colours::orange.withAlpha (0.95f)
+                     : juce::Colours::cornflowerblue.withAlpha (0.9f));
+
+        g.fillRoundedRectangle (noteRect, 4.0f);
+
+        g.setColour (juce::Colours::white.withAlpha (0.7f));
+        g.drawRoundedRectangle (noteRect, 4.0f, selected ? 2.0f : 1.0f);
+
+        // Resize handle on right edge
+        g.setColour (juce::Colours::white.withAlpha (0.75f));
+        g.drawLine (noteRect.getRight() - 4.0f,
+                    noteRect.getY() + 4.0f,
+                    noteRect.getRight() - 4.0f,
+                    noteRect.getBottom() - 4.0f,
+                    2.0f);
     }
     if (isSelecting)
     {
@@ -352,4 +503,51 @@ void PianoRoll::setNotes (const std::vector<Note>& newNotes)
 {
     notes = newNotes;
     repaint();
+}
+
+juce::Rectangle<float> PianoRoll::getNoteRect (int noteIndex) const
+{
+    const auto& n = notes[(size_t) noteIndex];
+
+    auto x = beatToX (n.startBeat);
+    auto w = (float) (n.lengthBeats * pixelsPerBeat);
+    auto y = midiToY (n.midiNote);
+
+    w = juce::jmax (w, 12.0f);
+
+    return { x, y + 1.0f, w, (float) rowHeight - 2.0f };
+}
+
+bool PianoRoll::hitTestNote (juce::Point<float> pos, int& outNoteIndex) const
+{
+    for (int i = (int) notes.size() - 1; i >= 0; --i)
+    {
+        if (getNoteRect (i).contains (pos))
+        {
+            outNoteIndex = i;
+            return true;
+        }
+    }
+
+    outNoteIndex = -1;
+    return false;
+}
+
+PianoRoll::NoteDragMode PianoRoll::getNoteDragModeForPosition (juce::Point<float> pos,
+                                                               int noteIndex) const
+{
+    auto rect = getNoteRect (noteIndex);
+
+    if (! rect.contains (pos))
+        return NoteDragMode::None;
+
+    if (std::abs (pos.x - rect.getRight()) <= noteEdgeHitWidth)
+        return NoteDragMode::ResizeEnd;
+
+    return NoteDragMode::Move;
+}
+
+void PianoRoll::setDefaultNoteLengthBeats (double newLength)
+{
+    defaultNoteLengthBeats = juce::jlimit (0.25, 16.0, newLength);
 }

@@ -55,6 +55,11 @@ public:
                        int numChannels = 2,
                        int sampleRate = 44100);
     
+    bool exportArrangementWav (const juce::File& outFile,
+                               const std::vector<AudioTrack>& tracks,
+                               double sampleRate = 48000.0,
+                               int numChannels = 2);
+    
     void setNumBars (int newNumBars) { numBars.store (juce::jmax (1, newNumBars)); }
        int getNumBars() const { return numBars.load(); }
     void setArrangementTracks (std::vector<AudioTrack> newTracks);

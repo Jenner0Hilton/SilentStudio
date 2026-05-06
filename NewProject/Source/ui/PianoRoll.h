@@ -52,8 +52,35 @@ public:
     void setCurrentPlaybackMode (InstrumentPlaybackMode mode);
     
     void setNotes (const std::vector<Note>& newNotes);
+    
+    enum class NoteDragMode
+    {
+        None,
+        Move,
+        ResizeEnd
+    };
 
+    NoteDragMode noteDragMode = NoteDragMode::None;
+
+    int selectedNoteIndex = -1;
+    bool isDraggingNote = false;
+
+    double originalNoteStartBeat = 0.0;
+    double originalNoteLengthBeats = 1.0;
+    double dragStartBeat = 0.0;
+
+    float noteEdgeHitWidth = 8.0f;
+    
+    void setDefaultNoteLengthBeats (double newLength);
+    
+    std::vector<Note> copiedNotes;
+    double copiedMinStartBeat = 0.0;
+    int copiedMinMidiNote = 60;
+
+    std::set<int> selectedNoteIndices;
+    
 private:
+    double defaultNoteLengthBeats = 1.0;
     double bpm = 120.0;
     int numBars = 4;
     std::vector<Note> notes;
@@ -84,4 +111,12 @@ private:
     
     InstrumentPlaybackMode currentPlaybackMode = InstrumentPlaybackMode::Oscillator;
     juce::String currentUserInstrumentId;
+    
+    juce::Rectangle<float> getNoteRect (int noteIndex) const;
+    bool hitTestNote (juce::Point<float> pos, int& outNoteIndex) const;
+    NoteDragMode getNoteDragModeForPosition (juce::Point<float> pos, int noteIndex) const;
+    
+   // bool keyPressed (const juce::KeyPress& key) override;
+
+   
 };

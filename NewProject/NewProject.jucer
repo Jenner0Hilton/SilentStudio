@@ -68,6 +68,8 @@
               file="Source/UserInstrument.h"/>
       </GROUP>
     </GROUP>
+    <FILE id="oj0JFC" name="ffmpeg" compile="0" resource="1" file="Builds/MacOSX/ffmpeg"
+          xcodeResource="1"/>
   </MAINGROUP>
   <MODULES>
     <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
@@ -88,7 +90,7 @@
   </MODULES>
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1"/>
   <EXPORTFORMATS>
-    <XCODE_MAC targetFolder="Builds/MacOSX">
+    <XCODE_MAC targetFolder="Builds/MacOSX" microphonePermissionNeeded="1">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" targetName="NewProject" plistPreprocessorDefinitions="&lt;key&gt;NSMicrophoneUsageDescription&lt;/key&gt;&#10;&lt;string&gt;This app needs microphone access to record audio.&lt;/string&gt;"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="NewProject" plistPreprocessorDefinitions="&lt;key&gt;NSMicrophoneUsageDescription&lt;/key&gt;&#10;&lt;string&gt;Recording audio for DAW&lt;/string&gt;&#10;"/>

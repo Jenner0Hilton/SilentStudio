@@ -839,3 +839,93 @@ void AudioEngine::rebuildSampleSynths()
 
     DBG ("rebuildSampleSynths done, count=" << (int) sampleSynths.size());
 }
+
+bool AudioEngine::exportArrangementWav (const juce::File& outFile,
+                                        const std::vector<AudioTrack>& tracks,
+                                        double sampleRate,
+                                        int numChannels)
+{
+    if (outFile.existsAsFile())
+        outFile.deleteFile();
+    double endTime = getArrangementEndTimeSeconds (tracks);
+
+    if (endTime <= 0.0)
+        return false;
+
+    int totalSamples = (int) std::ceil (endTime * sampleRate);
+
+    juce::AudioBuffer<float> renderBuffer (numChannels, totalSamples);
+    renderBuffer.clear();
+
+    for (const auto& track : tracks)
+    {
+        if (track.type == TrackType::Video || track.muted)
+            continue;
+
+        for (const auto& clip : track.clips)
+        {
+            if (clip.audioData == nullptr)
+                continue;
+
+            auto* clipBuffer = clip.audioData.get();
+
+            int clipNumChannels = clipBuffer->getNumChannels();
+            int clipNumSamples = clipBuffer->getNumSamples();
+
+            int destStart = (int) std::round (clip.startTimeSeconds * sampleRate);
+            int destLength = (int) std::round (clip.lengthSeconds * sampleRate);
+
+            double stretchRatio = 1.0;
+
+            if (clip.lengthSeconds > 0.0 && clip.sourceLengthSeconds > 0.0)
+                stretchRatio = clip.sourceLengthSeconds / clip.lengthSeconds;
+
+            for (int ch = 0; ch < numChannels; ++ch)
+            {
+                int sourceChannel = juce::jmin (ch, clipNumChannels - 1);
+
+                float* dest = renderBuffer.getWritePointer (ch);
+                const float* src = clipBuffer->getReadPointer (sourceChannel);
+
+                for (int i = 0; i < destLength; ++i)
+                {
+                    int destIndex = destStart + i;
+
+                    if (destIndex < 0 || destIndex >= totalSamples)
+                        continue;
+
+                    double sourcePosSeconds =
+                        clip.sourceOffsetSeconds + (((double) i / sampleRate) * stretchRatio);
+
+                    double sourcePosSamples = sourcePosSeconds * clip.sourceSampleRate;
+
+                    int i0 = juce::jlimit (0, clipNumSamples - 1, (int) std::floor (sourcePosSamples));
+                    int i1 = juce::jlimit (0, clipNumSamples - 1, i0 + 1);
+
+                    float frac = (float) (sourcePosSamples - (double) i0);
+                    float value = src[i0] + frac * (src[i1] - src[i0]);
+
+                    dest[destIndex] += value;
+                }
+            }
+        }
+    }
+
+    juce::WavAudioFormat wav;
+    std::unique_ptr<juce::OutputStream> stream (outFile.createOutputStream());
+
+    if (! stream)
+        return false;
+
+    juce::AudioFormatWriterOptions options;
+    options = options.withSampleRate (sampleRate)
+                     .withNumChannels (numChannels)
+                     .withBitsPerSample (16);
+
+    auto writer = wav.createWriterFor (stream, options);
+
+    if (! writer)
+        return false;
+
+    return writer->writeFromAudioSampleBuffer (renderBuffer, 0, totalSamples);
+}

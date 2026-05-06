@@ -63,6 +63,12 @@ MainComponent::MainComponent()
             }
         });
     };
+    addAndMakeVisible (exportFinalButton);
+
+    exportFinalButton.onClick = [this]
+    {
+        exportFinalArrangement();
+    };
     
     addAndMakeVisible (instrumentBrowser);
     instrumentBrowser.setVisible (true);
@@ -116,6 +122,28 @@ MainComponent::MainComponent()
         }
     };
     
+    addAndMakeVisible (noteLengthBox);
+    noteLengthBox.setVisible (true);
+
+    noteLengthBox.addItem ("1/16", 1);
+    noteLengthBox.addItem ("1/8", 2);
+    noteLengthBox.addItem ("1/4", 3);
+    noteLengthBox.addItem ("1/2", 4);
+    noteLengthBox.addItem ("1 bar", 5);
+
+    noteLengthBox.setSelectedId (3); // default 1 beat
+
+    noteLengthBox.onChange = [this]
+    {
+        switch (noteLengthBox.getSelectedId())
+        {
+            case 1: pianoRoll.setDefaultNoteLengthBeats (0.25); break;
+            case 2: pianoRoll.setDefaultNoteLengthBeats (0.5); break;
+            case 3: pianoRoll.setDefaultNoteLengthBeats (1.0); break;
+            case 4: pianoRoll.setDefaultNoteLengthBeats (2.0); break;
+            case 5: pianoRoll.setDefaultNoteLengthBeats (4.0); break;
+        }
+    };
     
     addAndMakeVisible(transport);
     addAndMakeVisible(pianoViewport);
@@ -153,6 +181,7 @@ MainComponent::MainComponent()
 
     arrangementButton.onClick = [this]
     {
+        noteLengthBox.setVisible (false);
         audioEngine.stop();
         arrangementViewport.setVisible (true);
         pianoViewport.setVisible (false);
@@ -173,6 +202,7 @@ MainComponent::MainComponent()
 
     pianoToolButton.onClick = [this]
     {
+        noteLengthBox.setVisible (true);
         audioEngine.stop();
         arrangementViewport.setVisible (false);
         pianoViewport.setVisible (true);
@@ -550,6 +580,8 @@ void MainComponent::resized()
     addTrackButton.setBounds (topBar.removeFromLeft (100).reduced (5));
     removeTrackButton.setBounds (topBar.removeFromLeft (100).reduced (5));
     importVideoButton.setBounds (topBar.removeFromLeft (140).reduced (5));
+    exportFinalButton.setBounds (topBar.removeFromLeft (120).reduced (5));
+    noteLengthBox.setBounds (topBar.removeFromLeft (100).reduced (5));
     
     loadSampleInstrumentButton.setBounds (topBar.removeFromLeft (160).reduced (5));
     
@@ -579,7 +611,6 @@ void MainComponent::resized()
     {
         auto pianoArea = area;
             auto browserArea = pianoArea.removeFromLeft (220).reduced (4);
-
             instrumentBrowser.setBounds (browserArea);
             pianoViewport.setBounds (pianoArea);
 
@@ -1050,4 +1081,153 @@ void MainComponent::loadProject (const juce::String& projectName)
     resized();
 
     DBG ("Loaded project: " << file.getFullPathName());
+}
+
+bool MainComponent::arrangementHasVideo() const
+{
+    const auto& tracks = arrangementView.getTracks();
+
+    if (tracks.empty())
+        return false;
+
+    const auto& videoTrack = tracks[0];
+
+    return videoTrack.type == TrackType::Video
+        && ! videoTrack.videoClips.empty();
+}
+
+void MainComponent::exportFinalArrangement()
+{
+    fileChooser = std::make_unique<juce::FileChooser>(
+        "Export Final",
+        juce::File::getSpecialLocation (juce::File::userDocumentsDirectory),
+        arrangementHasVideo() ? "*.mp4" : "*.wav");
+
+    auto flags = juce::FileBrowserComponent::saveMode
+               | juce::FileBrowserComponent::canSelectFiles;
+
+    fileChooser->launchAsync (flags, [this] (const juce::FileChooser& fc)
+    {
+        auto chosenFile = fc.getResult();
+        fileChooser.reset();
+
+        if (chosenFile == juce::File{})
+            return;
+
+        const auto& tracks = arrangementView.getTracks();
+
+        if (! arrangementHasVideo())
+        {
+            auto wavFile = chosenFile.withFileExtension (".wav");
+
+            bool ok = audioEngine.exportArrangementWav (
+                wavFile,
+                tracks,
+                audioEngine.getCurrentSampleRate(),
+                2
+            );
+
+            DBG (juce::String(ok ? "WAV export complete" : "WAV export failed"));
+            return;
+        }
+
+        // If video exists, first render temporary WAV.
+        auto tempAudio = juce::File::getSpecialLocation (juce::File::tempDirectory)
+                            .getChildFile ("mydaw_export_audio.wav");
+
+        bool audioOk = audioEngine.exportArrangementWav (
+            tempAudio,
+            tracks,
+            audioEngine.getCurrentSampleRate(),
+            2
+        );
+
+        if (! audioOk)
+        {
+            DBG ("Failed to render temporary audio");
+            return;
+        }
+
+        const auto& videoTrack = tracks[0];
+
+        if (videoTrack.videoClips.empty())
+            return;
+
+        // First pass: use the first video clip as the base video.
+        auto videoFile = videoTrack.videoClips[0].file;
+        auto outMp4 = chosenFile.withFileExtension (".mp4");
+
+        runFfmpegMux (videoFile, tempAudio, outMp4);
+    });
+}
+
+void MainComponent::runFfmpegMux (const juce::File& videoFile,
+                                  const juce::File& audioFile,
+                                  const juce::File& outputFile)
+{
+    /*juce::String ffmpegPath = "/opt/homebrew/bin/ffmpeg";
+
+    if (! juce::File (ffmpegPath).existsAsFile())
+        ffmpegPath = "/usr/local/bin/ffmpeg";
+
+    if (! juce::File (ffmpegPath).existsAsFile())
+    {
+        DBG ("FFmpeg not found. Install with: brew install ffmpeg");
+        return;
+    }*/
+    auto ffmpegFile = getBundledFfmpeg();
+
+    if (! ffmpegFile.existsAsFile())
+    {
+        DBG ("Bundled FFmpeg not found: " << ffmpegFile.getFullPathName());
+        return;
+    }
+
+    juce::String ffmpegPath = ffmpegFile.getFullPathName();
+    DBG ("Bundled FFmpeg path: " << getBundledFfmpeg().getFullPathName());
+
+    juce::StringArray args;
+    args.add (ffmpegPath);
+    args.add ("-y");
+    args.add ("-i");
+    args.add (videoFile.getFullPathName());
+    args.add ("-i");
+    args.add (audioFile.getFullPathName());
+    args.add ("-map");
+    args.add ("0:v:0");
+    args.add ("-map");
+    args.add ("1:a:0");
+    args.add ("-c:v");
+    args.add ("copy");
+    args.add ("-c:a");
+    args.add ("aac");
+    args.add ("-shortest");
+    args.add (outputFile.getFullPathName());
+
+    juce::ChildProcess process;
+
+    bool started = process.start (args);
+
+    if (! started)
+    {
+        DBG ("Failed to start FFmpeg");
+        return;
+    }
+
+    process.waitForProcessToFinish (-1);
+
+    DBG ("MP4 export complete: " << outputFile.getFullPathName());
+}
+
+juce::File MainComponent::getBundledFfmpeg() const
+{
+    auto appFile = juce::File::getSpecialLocation (juce::File::currentApplicationFile);
+
+    auto resourcesDir = appFile
+        .getChildFile ("Contents")
+        .getChildFile ("Resources");
+
+    auto ffmpeg = resourcesDir.getChildFile ("ffmpeg");
+
+    return ffmpeg;
 }

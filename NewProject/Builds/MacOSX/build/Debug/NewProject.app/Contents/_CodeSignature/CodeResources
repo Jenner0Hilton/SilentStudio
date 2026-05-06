@@ -8,6 +8,10 @@
 		<data>
 		4cEN55flubpq9bxeGSBG3zMPYQw=
 		</data>
+		<key>Resources/ffmpeg</key>
+		<data>
+		a8pNYWvKFBTEoX/Tvk/Re9Pl7js=
+		</data>
 	</dict>
 	<key>files2</key>
 	<dict>
@@ -16,6 +20,13 @@
 			<key>hash2</key>
 			<data>
 			cY60xaOlVk3YMq6aNs9knz7yV86JbdkhaT7rYQG9AIo=
+			</data>
+		</dict>
+		<key>Resources/ffmpeg</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			KaexVlW9nf4DySRwApGs6nI3gCuTiBtHH9TXFRkP3DM=
 			</data>
 		</dict>
 	</dict>
